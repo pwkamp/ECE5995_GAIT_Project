@@ -76,6 +76,11 @@ class CharacterGenerationPage:
         for character in structured_scene.get("characters", []):
             with st.expander(character.get("name", "Character"), expanded=False):
                 name = st.text_input("Name", value=character.get("name", ""), key=f"name_{character.get('name')}")
+                age = st.text_area(
+                    "Age",
+                    value=character.get("age", ""),
+                    key=f"age_{character.get('name')}",
+                )
                 description = st.text_area(
                     "Description",
                     value=character.get("description", ""),
@@ -94,6 +99,7 @@ class CharacterGenerationPage:
                 updated_chars.append(
                     {
                         "name": name,
+                        "age": age,
                         "description": description,
                         "style_hint": style_hint,
                         "prompt": prompt,

@@ -26,7 +26,6 @@ except ImportError:
 class Page(Protocol):
     name: str
     icon: str
-
     def render(self) -> None: ...
 
 
