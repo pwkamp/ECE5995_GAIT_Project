@@ -44,7 +44,8 @@ class CharacterGenerationPage:
         if not structured_scene:
             st.info("No structured output yet. Update the script to auto-generate JSON.")
             st.stop()
-
+        
+        # Character avatars
         st.markdown("#### Optional: Upload Existing Avatars")
         uploads = st.session_state.setdefault("character_uploads", {})
         for character in structured_scene.get("characters", []):
@@ -56,7 +57,28 @@ class CharacterGenerationPage:
             if file:
                 uploads[character.get("name")] = file.read()
                 st.success(f"Avatar uploaded for {character.get('name')}")
+        
+        self._render_character_inputs(structured_scene)
 
+        # Quality of generated portraits
+        st.markdown("#### Image Quality")
+        st.select_slider(
+            "Image size",
+            options=["1024x1024", "1024x1792", "1792x1024"],
+            value=st.session_state.get("image_size", "1024x1024"),
+            key="image_size",
+            help="Higher sizes look better but cost more.",
+        )
+
+        col_characters, col_background = st.columns([2, 1])
+        with col_characters:
+            self._render_characters(structured_scene)
+        with col_background:
+            self._render_background(structured_scene)
+
+
+    def _render_character_inputs(self, structured_scene: Dict) -> None:
+        # Character inputs
         st.markdown("#### Character Inputs")
         updated_chars: List[Dict] = []
         for character in structured_scene.get("characters", []):
@@ -88,21 +110,7 @@ class CharacterGenerationPage:
         if updated_chars:
             structured_scene["characters"] = updated_chars
             self.state.set_structured_scene(structured_scene)
-
-        st.markdown("#### Image Quality")
-        st.select_slider(
-            "Image size",
-            options=["1024x1024", "1024x1792", "1792x1024"],
-            value=st.session_state.get("image_size", "1024x1024"),
-            key="image_size",
-            help="Higher sizes look better but cost more.",
-        )
-
-        col_characters, col_background = st.columns([2, 1])
-        with col_characters:
-            self._render_characters(structured_scene)
-        with col_background:
-            self._render_background(structured_scene)
+    
 
     def _render_characters(self, structured_scene: Dict) -> None:
         st.markdown("#### Characters")
