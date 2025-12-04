@@ -39,10 +39,10 @@ class GAITApp:
         self.config = config
 
         self.pages: List[Page] = [
-            ScriptPage(self.state, self.config),
             CharacterGenerationPage(self.state, self.config),
+            ScriptPage(self.state, self.config),
             VideoGenerationPage(self.state),
-            StructuredJSONPage(self.state, self.config),
+            StructuredJSONPage(self.state, self.config)
         ]
 
     def render(self) -> None:
