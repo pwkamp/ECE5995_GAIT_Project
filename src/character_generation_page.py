@@ -29,38 +29,27 @@ class CharacterGenerationPage:
         st.caption(
             "Work with the structured scene, edit character inputs, and generate/refine assets."
         )
-
         if not self.state.session.get("script_text"):
             st.warning("Add a script draft on the Script page first.")
             return
-
         # Ensure structured JSON is current when entering this page
         self._sync_structure_with_script()
-
         self._render_asset_generation()
+
 
     def _render_asset_generation(self) -> None:
         structured_scene = self.state.session.get("structured_scene")
         if not structured_scene:
             st.info("No structured output yet. Update the script to auto-generate JSON.")
             st.stop()
-        
-        # Character avatars
-        st.markdown("#### Optional: Upload Existing Avatars")
-        uploads = st.session_state.setdefault("character_uploads", {})
-        for character in structured_scene.get("characters", []):
-            file = st.file_uploader(
-                f"Upload avatar for {character.get('name')}",
-                type=["png", "jpg", "jpeg"],
-                key=f"upload_{character.get('name')}",
-            )
-            if file:
-                uploads[character.get("name")] = file.read()
-                st.success(f"Avatar uploaded for {character.get('name')}")
-        
-        self._render_character_inputs(structured_scene)
+        self._render_media_characters(structured_scene)
+        self._render_character_avatar_uploads(structured_scene)
+        self._render_image_quality_slider()
+        self._render_chars_and_background_columns(structured_scene)
 
-        # Quality of generated portraits
+
+    # Quality of generated portraits
+    def _render_image_quality_slider(self) -> None:
         st.markdown("#### Image Quality")
         st.select_slider(
             "Image size",
@@ -70,6 +59,8 @@ class CharacterGenerationPage:
             help="Higher sizes look better but cost more.",
         )
 
+
+    def _render_chars_and_background_columns(self, structured_scene: Dict) -> None:
         col_characters, col_background = st.columns([2, 1])
         with col_characters:
             self._render_characters(structured_scene)
@@ -77,8 +68,8 @@ class CharacterGenerationPage:
             self._render_background(structured_scene)
 
 
-    def _render_character_inputs(self, structured_scene: Dict) -> None:
-        # Character inputs
+    # Character inputs
+    def _render_media_characters(self, structured_scene: Dict) -> None:
         st.markdown("#### Character Inputs")
         updated_chars: List[Dict] = []
         for character in structured_scene.get("characters", []):
@@ -111,6 +102,22 @@ class CharacterGenerationPage:
             structured_scene["characters"] = updated_chars
             self.state.set_structured_scene(structured_scene)
     
+
+    # Character avatars
+    def _render_character_avatar_uploads(self, structured_scene: Dict) -> None:
+        st.markdown("#### Optional: Upload Existing Avatars")
+        uploads = st.session_state.setdefault("character_uploads", {})
+        for character in structured_scene.get("characters", []):
+            name = character.get("name")
+            file = st.file_uploader(
+                f"Upload avatar for {name}",
+                type=["png", "jpg", "jpeg"],
+                key=f"upload_{name}",
+            )
+            if file:
+                uploads[name] = file.read()
+                st.success(f"Avatar uploaded for {name}")
+
 
     def _render_characters(self, structured_scene: Dict) -> None:
         st.markdown("#### Characters")
