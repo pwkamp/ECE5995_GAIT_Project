@@ -9,7 +9,7 @@ try:
     from .ui_helpers import ButtonRow, ProgressHelper
     from .services.chat_service import OpenAIChatService
     from .services.image_service import OpenAIImageService
-except ImportError:  # Fallback when run as a standalone script context
+except ImportError:
     from app_state import AppState
     from ui_helpers import ButtonRow, ProgressHelper
     from services.chat_service import OpenAIChatService
@@ -27,49 +27,24 @@ class CharacterGenerationPage:
     def render(self) -> None:
         st.header(f"{self.icon} Character & Background Generation")
         st.caption(
-            "Generate structured JSON from the latest script, then walk through "
-            "sequential character creation and a consistent background."
+            "Work with the structured scene, edit character inputs, and generate/refine assets."
         )
 
         if not self.state.session.get("script_text"):
             st.warning("Add a script draft on the Script page first.")
             return
 
-        self._render_structure_controls()
+        # Ensure structured JSON is current when entering this page
+        self._sync_structure_with_script()
+
         self._render_asset_generation()
-
-    def _render_structure_controls(self) -> None:
-        st.markdown("#### Structured Scene JSON")
-        if ButtonRow.single("Generate JSON", key="generate_json"):
-            if self.config.get("dev_mode"):
-                structured = self._dev_structured_scene()
-                self.state.set_structured_scene(structured)
-                self.state.set_character_assets([])
-                self.state.set_background_asset(None)
-                st.success("Structured scene loaded from dev preset.")
-            else:
-                status = st.status("Generating structured JSON...", expanded=True)
-                try:
-                    structured = self._build_structure_from_llm(self.state.session["script_text"])
-                    self.state.set_structured_scene(structured)
-                    self.state.set_character_assets([])
-                    self.state.set_background_asset(None)
-                    status.update(label="Structured scene updated.", state="complete")
-                except Exception as exc:
-                    status.update(label=f"JSON generation failed: {exc}", state="error")
-
-        structured_scene = self.state.session.get("structured_scene")
-        if structured_scene:
-            st.json(structured_scene, expanded=True)
-        else:
-            st.info("No structured output yet. Generate to create one.")
 
     def _render_asset_generation(self) -> None:
         structured_scene = self.state.session.get("structured_scene")
         if not structured_scene:
+            st.info("No structured output yet. Update the script to auto-generate JSON.")
             st.stop()
 
-        # Optional: allow uploads of pre-made avatars before generation
         st.markdown("#### Optional: Upload Existing Avatars")
         uploads = st.session_state.setdefault("character_uploads", {})
         for character in structured_scene.get("characters", []):
@@ -82,9 +57,40 @@ class CharacterGenerationPage:
                 uploads[character.get("name")] = file.read()
                 st.success(f"Avatar uploaded for {character.get('name')}")
 
-        # Image quality/size selector
+        st.markdown("#### Character Inputs")
+        updated_chars: List[Dict] = []
+        for character in structured_scene.get("characters", []):
+            with st.expander(character.get("name", "Character"), expanded=False):
+                name = st.text_input("Name", value=character.get("name", ""), key=f"name_{character.get('name')}")
+                description = st.text_area(
+                    "Description",
+                    value=character.get("description", ""),
+                    key=f"desc_{character.get('name')}",
+                )
+                style_hint = st.text_input(
+                    "Style hint",
+                    value=character.get("style_hint", structured_scene.get("art_style", "")),
+                    key=f"style_{character.get('name')}",
+                )
+                prompt = st.text_area(
+                    "Prompt",
+                    value=character.get("prompt", ""),
+                    key=f"prompt_{character.get('name')}",
+                )
+                updated_chars.append(
+                    {
+                        "name": name,
+                        "description": description,
+                        "style_hint": style_hint,
+                        "prompt": prompt,
+                    }
+                )
+        if updated_chars:
+            structured_scene["characters"] = updated_chars
+            self.state.set_structured_scene(structured_scene)
+
         st.markdown("#### Image Quality")
-        size_option = st.select_slider(
+        st.select_slider(
             "Image size",
             options=["1024x1024", "1024x1792", "1792x1024"],
             value=st.session_state.get("image_size", "1024x1024"),
@@ -105,10 +111,10 @@ class CharacterGenerationPage:
             art_style = structured_scene.get("art_style", "realistic")
             assets: List[Dict[str, str]] = []
 
-            for idx, character in enumerate(characters):
-                style_hint = art_style  # enforce consistent style across characters
-                prev_style = art_style if not assets else assets[-1].get("style", art_style)
-                prompt = self._build_character_prompt(character, style_hint, prev_style, structured_scene)
+            for character in characters:
+                style_hint = art_style
+                prev_style = assets[-1].get("style", art_style) if assets else art_style
+                prompt = self._build_character_prompt(character, style_hint, prev_style)
                 entry = {
                     "name": character["name"],
                     "status": "pending",
@@ -116,7 +122,6 @@ class CharacterGenerationPage:
                     "style": style_hint,
                     "prompt": prompt,
                     "refinement": "",
-                    "image_b64": None,
                     "image_bytes": None,
                     "image_url": None,
                     "use_reference": True,
@@ -149,8 +154,7 @@ class CharacterGenerationPage:
         assets = self.state.session.get("character_assets", [])
         if assets:
             for character in assets:
-                status_text = "ready" if character.get("status") == "ready" else character.get("status")
-                st.success(f"{character['name']} image {status_text}.")
+                st.success(f"{character['name']} image {character.get('status')}.")
                 with st.expander(character["name"], expanded=True):
                     st.write("Status:", character["status"])
                     st.write("Art style:", character.get("style", ""))
@@ -175,7 +179,7 @@ class CharacterGenerationPage:
                         f"Refinement for {character['name']}",
                         value=character.get("refinement", ""),
                         key=f"refine_{character['name']}",
-                        help="Add a prompt tweak to regenerate this character before moving on.",
+                        help="Add a prompt tweak to regenerate this character.",
                     )
                     if st.button(f"Refine {character['name']}", key=f"apply_{character['name']}"):
                         with st.status(f"Refining {character['name']}...", expanded=True) as status:
@@ -193,7 +197,6 @@ class CharacterGenerationPage:
                         character["refinement"] = refinement
                         character["status"] = "updated"
                         character["prompt"] = prompt
-                        character["image_b64"] = None
                         character["image_bytes"] = image_bytes
                         character["image_url"] = url
                         character["error"] = None
@@ -215,7 +218,6 @@ class CharacterGenerationPage:
                 "label": "Uploaded background",
                 "status": "ready",
                 "note": "User-uploaded background",
-                "image_b64": None,
                 "image_bytes": bg_bytes,
                 "image_url": None,
             }
@@ -240,7 +242,6 @@ class CharacterGenerationPage:
                     f"Characters considered: {character_summaries}. "
                     f"Description: {background.get('description', '')}"
                 ),
-                "image_b64": None,
                 "image_bytes": image_bytes,
                 "image_url": url,
             }
@@ -294,16 +295,59 @@ class CharacterGenerationPage:
                 self.state.set_background_asset(asset)
                 st.rerun()
         else:
-            st.info("No background yet. Generate to see the placeholder.")
+            st.info("No background yet. Generate or upload one.")
 
-    def _build_structure_from_llm(self, script_text: str) -> Dict:
-        """Use LLM to produce structured JSON; fallback to simple heuristic on failure."""
+    def _sync_structure_with_script(self) -> None:
+        """Refresh structured JSON when entering the page if the script changed."""
+        script_text = self.state.session.get("script_text", "")
+        if not script_text.strip():
+            return
+        last = st.session_state.get("structured_scene_source_text", "")
+        needs_update = script_text != last or not self.state.session.get("structured_scene")
+        if not needs_update:
+            return
+
+        if self.config.get("dev_mode"):
+            structured = self._dev_structured_scene()
+            self.state.set_structured_scene(structured)
+            st.session_state["structured_scene_source_text"] = script_text
+            return
+
         try:
             client = self._get_client()
-            return client.generate_structured_scene(script_text)
+            structured = client.generate_structured_scene(script_text)
+            self.state.set_structured_scene(structured)
+            st.session_state["structured_scene_source_text"] = script_text
         except Exception as exc:
-            st.error(f"LLM JSON generation failed, using heuristic fallback: {exc}")
-            return self._fallback_structure(script_text)
+            st.error(f"Failed to refresh structured JSON: {exc}")
+
+    def _generate_image(self, prompt: str, reference_note: Optional[str] = None):
+        client = self._get_image_client()
+        size = st.session_state.get("image_size", "1024x1024")
+        return client.generate_image(prompt=prompt, reference_note=reference_note, size=size)
+
+    @staticmethod
+    def _build_character_prompt(character: Dict, style_hint: str, prev_style: str) -> str:
+        return (
+            f"Single, centered, full-body portrait of {character.get('name')} in {style_hint} illustration style "
+            f"with clean lines, bold colors, and light shading. "
+            f"Description: {character.get('description','')}. "
+            f"Plain white background only; no props, no panels, no collage, no text, no extra poses, no duplicates. "
+            f"Consistent style across all characters; maintain continuity with previous: {prev_style}. "
+            f"High-quality, detailed rendering suitable for compositing."
+        )
+
+    @staticmethod
+    def _build_background_prompt(background: Dict, art_style: str, character_summaries: str) -> str:
+        return (
+            f"Scene background in {art_style} style. "
+            f"Location: {background.get('location', background.get('setting', 'Stage'))}. "
+            f"Time of day: {background.get('time_of_day', 'Day')}. "
+            f"Description: {background.get('description','')}. "
+            f"No characters, no people, no text, no word balloons. "
+            f"Leave clean negative space for compositing foreground characters. "
+            f"Ensure stylistic consistency with characters: {character_summaries}."
+        )
 
     @staticmethod
     def _dev_structured_scene() -> Dict:
@@ -373,38 +417,8 @@ class CharacterGenerationPage:
 
     @st.cache_resource(show_spinner=False)
     def _get_client(_self=None) -> OpenAIChatService:
-        """Cache OpenAI client; ignore self in hashing to avoid cache errors."""
         return OpenAIChatService()
 
     @st.cache_resource(show_spinner=False)
     def _get_image_client(_self=None) -> OpenAIImageService:
-        """Cache OpenAI image client; ignore self in hashing."""
         return OpenAIImageService()
-
-    def _generate_image(self, prompt: str, reference_note: Optional[str] = None):
-        client = self._get_image_client()
-        size = st.session_state.get("image_size", "768x768")
-        return client.generate_image(prompt=prompt, reference_note=reference_note, size=size)
-
-    @staticmethod
-    def _build_character_prompt(character: Dict, style_hint: str, prev_style: str, structured_scene: Dict) -> str:
-        return (
-            f"Single, centered, full-body portrait of {character.get('name')} in {style_hint} illustration style "
-            f"with clean lines, bold colors, and light shading. "
-            f"Description: {character.get('description','')}. "
-            f"Plain white background only; no props, no panels, no collage, no text, no extra poses, no duplicates. "
-            f"Consistent style across all characters; maintain continuity with previous: {prev_style}. "
-            f"High-quality, detailed rendering suitable for compositing."
-        )
-
-    @staticmethod
-    def _build_background_prompt(background: Dict, art_style: str, character_summaries: str) -> str:
-        return (
-            f"Scene background in {art_style} style. "
-            f"Location: {background.get('location', background.get('setting', 'Stage'))}. "
-            f"Time of day: {background.get('time_of_day', 'Day')}. "
-            f"Description: {background.get('description','')}. "
-            f"No characters, no people, no text, no word balloons. "
-            f"Leave clean negative space for compositing foreground characters. "
-            f"Ensure stylistic consistency with characters: {character_summaries}."
-        )
