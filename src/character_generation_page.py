@@ -322,7 +322,7 @@ class CharacterGenerationPage:
         if not needs_update:
             return
         if self.config.get("dev_mode"):
-            structured = self._dev_structured_scene()
+            structured = self._dev_get_structured_scene()
             self.state.set_structured_scene(structured)
             st.session_state["structured_scene_source_text"] = script_text
             return
@@ -367,7 +367,7 @@ class CharacterGenerationPage:
 
 
     @staticmethod
-    def _dev_structured_scene() -> Dict:
+    def _dev_get_structured_scene() -> Dict:
         return {
             "scene_title": "Smoothie Showdown",
             "logline": "Three friends compete to create the ultimate smoothie, leading to hilarious mishaps and playful banter in a colorful kitchen.",
@@ -401,15 +401,10 @@ class CharacterGenerationPage:
                 },
             ],
             "beats": [
-                {"order": 1, "description": "JAKE stands by the blender, holding a banana with a mischievous grin."},
-                {"order": 2, "description": "JAKE cheerfully announces his smoothie ingredients, including gummy bears."},
-                {"order": 3, "description": "SARAH rolls her eyes at JAKE's choice of gummy bears."},
-                {"order": 4, "description": "MIKE bounces in, excitedly suggesting chocolate syrup."},
-                {"order": 5, "description": "JAKE agrees to call it a 'dessert smoothie.'"},
-                {"order": 6, "description": "SARAH smirks, calling it a 'regret smoothie.'"},
-                {"order": 7, "description": "JAKE presses the blender button, causing a smoothie explosion."},
-                {"order": 8, "description": "JAKE laughs and calls it a 'splat-er smoothie,' leading to laughter from all."},
-            ],
+                {"order": 1, "description": "Establish the setting."},
+                {"order": 2, "description": "Introduce the characters."},
+                {"order": 3, "description": "Present the initial conflict or goal."},
+            ]
         }
 
 
