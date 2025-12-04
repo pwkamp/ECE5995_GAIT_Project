@@ -24,6 +24,7 @@ class CharacterGenerationPage:
         self.state = state
         self.config = config
 
+
     def render(self) -> None:
         st.header(f"{self.icon} Character & Background Generation")
         st.caption(
@@ -70,7 +71,7 @@ class CharacterGenerationPage:
 
     # Character inputs
     def _render_media_characters(self, structured_scene: Dict) -> None:
-        st.markdown("#### Character Inputs")
+        st.markdown("#### Story Characters")
         updated_chars: List[Dict] = []
         for character in structured_scene.get("characters", []):
             with st.expander(character.get("name", "Character"), expanded=False):
@@ -87,7 +88,7 @@ class CharacterGenerationPage:
                 )
                 prompt = st.text_area(
                     "Prompt",
-                    value=character.get("prompt", ""),
+                    value=character.get("image_prompt", ""),
                     key=f"prompt_{character.get('name')}",
                 )
                 updated_chars.append(
@@ -165,7 +166,6 @@ class CharacterGenerationPage:
 
             self.state.set_character_assets(assets)
             st.success("Character images created in sequence.")
-
         assets = self.state.session.get("character_assets", [])
         if assets:
             for character in assets:
@@ -173,7 +173,7 @@ class CharacterGenerationPage:
                 with st.expander(character["name"], expanded=True):
                     st.write("Status:", character["status"])
                     st.write("Art style:", character.get("style", ""))
-                    st.write("Prompt:", character.get("prompt", ""))
+                    st.write("Prompt:", character.get("image_prompt", ""))
                     st.write("Note:", character["note"])
                     if character.get("error"):
                         st.error(character["error"])
@@ -211,7 +211,7 @@ class CharacterGenerationPage:
                             status.update(label=f"{character['name']} updated.", state="complete")
                         character["refinement"] = refinement
                         character["status"] = "updated"
-                        character["prompt"] = prompt
+                        character["image_prompt"] = prompt
                         character["image_bytes"] = image_bytes
                         character["image_url"] = url
                         character["error"] = None
@@ -219,6 +219,7 @@ class CharacterGenerationPage:
                         st.rerun()
         else:
             st.info("No character images yet. Generate to see placeholders.")
+
 
     def _render_background(self, structured_scene: Dict) -> None:
         st.markdown("#### Background")
@@ -238,7 +239,6 @@ class CharacterGenerationPage:
             }
             self.state.set_background_asset(asset)
             st.success("Background uploaded.")
-
         if ButtonRow.single("Generate Background", key="generate_background"):
             background = structured_scene.get("background", {})
             art_style = structured_scene.get("art_style", "realistic")
@@ -262,7 +262,6 @@ class CharacterGenerationPage:
             }
             self.state.set_background_asset(asset)
             st.success("Background created using all characters.")
-
         asset = self.state.session.get("background_asset")
         if asset:
             st.success(f"Background ready: {asset['label']}")
@@ -312,6 +311,7 @@ class CharacterGenerationPage:
         else:
             st.info("No background yet. Generate or upload one.")
 
+
     def _sync_structure_with_script(self) -> None:
         """Refresh structured JSON when entering the page if the script changed."""
         script_text = self.state.session.get("script_text", "")
@@ -321,13 +321,11 @@ class CharacterGenerationPage:
         needs_update = script_text != last or not self.state.session.get("structured_scene")
         if not needs_update:
             return
-
         if self.config.get("dev_mode"):
             structured = self._dev_structured_scene()
             self.state.set_structured_scene(structured)
             st.session_state["structured_scene_source_text"] = script_text
             return
-
         try:
             client = self._get_client()
             structured = client.generate_structured_scene(script_text)
@@ -336,10 +334,12 @@ class CharacterGenerationPage:
         except Exception as exc:
             st.error(f"Failed to refresh structured JSON: {exc}")
 
+
     def _generate_image(self, prompt: str, reference_note: Optional[str] = None):
         client = self._get_image_client()
         size = st.session_state.get("image_size", "1024x1024")
         return client.generate_image(prompt=prompt, reference_note=reference_note, size=size)
+
 
     @staticmethod
     def _build_character_prompt(character: Dict, style_hint: str, prev_style: str) -> str:
@@ -352,6 +352,7 @@ class CharacterGenerationPage:
             f"High-quality, detailed rendering suitable for compositing."
         )
 
+
     @staticmethod
     def _build_background_prompt(background: Dict, art_style: str, character_summaries: str) -> str:
         return (
@@ -363,6 +364,7 @@ class CharacterGenerationPage:
             f"Leave clean negative space for compositing foreground characters. "
             f"Ensure stylistic consistency with characters: {character_summaries}."
         )
+
 
     @staticmethod
     def _dev_structured_scene() -> Dict:
@@ -377,22 +379,25 @@ class CharacterGenerationPage:
             },
             "characters": [
                 {
-                    "name": "JAKE",
-                    "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
-                    "style_hint": "Goofy, playful",
-                    "prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously.",
+                    "name": "Character_1",
+                    "age": "01, recently born",
+                    "description": "likes, dislikes, career, and disposition",
+                    "style_hint": "Goofy, playful, leadership",
+                    "image_prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously.",
                 },
                 {
-                    "name": "SARAH",
-                    "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
+                    "name": "Character_2",
+                    "age": "25, mid-twenties",
+                    "description": "likes, dislikes, career, and disposition",
                     "style_hint": "Witty, sharp",
-                    "prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression.",
+                    "image_prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression.",
                 },
                 {
-                    "name": "MIKE",
-                    "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
+                    "name": "Character_3",
+                    "age": "01, recently born",
+                    "description": "likes, dislikes, career, and disposition",
                     "style_hint": "Enthusiastic, clueless",
-                    "prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile.",
+                    "image_prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile.",
                 },
             ],
             "beats": [
@@ -406,6 +411,7 @@ class CharacterGenerationPage:
                 {"order": 8, "description": "JAKE laughs and calls it a 'splat-er smoothie,' leading to laughter from all."},
             ],
         }
+
 
     @staticmethod
     def _fallback_structure(script_text: str) -> Dict:
@@ -430,9 +436,11 @@ class CharacterGenerationPage:
             "source_excerpt": summary,
         }
 
+
     @st.cache_resource(show_spinner=False)
     def _get_client(_self=None) -> OpenAIChatService:
         return OpenAIChatService()
+
 
     @st.cache_resource(show_spinner=False)
     def _get_image_client(_self=None) -> OpenAIImageService:

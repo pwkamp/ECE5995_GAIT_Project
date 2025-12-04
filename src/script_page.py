@@ -201,19 +201,19 @@ class ScriptPage:
                     "name": "JAKE",
                     "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
                     "style_hint": "Goofy, playful",
-                    "prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously.",
+                    "image_prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously.",
                 },
                 {
                     "name": "SARAH",
                     "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
                     "style_hint": "Witty, sharp",
-                    "prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression.",
+                    "image_prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression.",
                 },
                 {
                     "name": "MIKE",
                     "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
                     "style_hint": "Enthusiastic, clueless",
-                    "prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile.",
+                    "image_prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile.",
                 },
             ],
             "beats": [
