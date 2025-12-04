@@ -50,16 +50,13 @@ class GAITApp:
             page_icon="GAIT",
             layout="wide",
         )
-
         st.title("GAIT Story Builder")
         st.markdown(
             "Design a scene, mock the AI handoffs, and see how assets move through "
             "the pipeline. Replace the placeholders with live AI calls when ready."
         )
         st.markdown("---")
-
         self._maybe_seed_dev_script()
-
         selected_page = self._sidebar_nav()
         selected_page.render()
 
