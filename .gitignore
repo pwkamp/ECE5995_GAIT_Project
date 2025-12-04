@@ -16,6 +16,8 @@ ENV/
 .env
 .env.local
 .env.*.local
+src/.streamlit/secrets.toml
+.streamlit/secrets.toml
 
 # IDE
 .vscode/
