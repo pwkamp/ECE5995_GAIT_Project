@@ -62,7 +62,7 @@ class GAITApp:
     def _maybe_seed_dev_script(self) -> None:
         if not self.config.get("dev_mode"):
             return
-        sample_script = au.get_current_script()
+        sample_script = au.get_current_script(self)
         if not sample_script:
             sample_script = (
                 "**Title: Smoothie Showdown**\n\n"

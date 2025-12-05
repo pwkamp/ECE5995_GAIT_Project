@@ -41,26 +41,22 @@ def load_structured_scene(self):
             scene = json.load(f)
     except json.JSONDecodeError:
         return None
-    self.state.set_structured_scene(scene)
+    self.state.session["structured_scene"] = scene
     return scene
 
 
 def load_or_init_structured_scene(self):
-    """
-    Load from disk if it exists; otherwise return the current memory scene.
-    Useful when starting a new session.
-    """
-    loaded = self.load_structured_scene()
-    if loaded is not None:
-        return loaded
-
+    load_structured_scene(self)
     return self.state.session.get("structured_scene")
 
 
-def get_current_script(structured_scene: dict):
+def get_current_script(self):
+    structured_scene = load_or_init_structured_scene(self)
+    if not structured_scene:
+        return ""
     formatted_c = get_formatted_characters(structured_scene)
     plot_to_pt = get_plot_to_pt(structured_scene)
-    return formatted_c + "\n" + plot_to_pt
+    return formatted_c + "\n******************************\n" + plot_to_pt
 
 
 def get_formatted_characters(structured_scene: dict) -> str:
