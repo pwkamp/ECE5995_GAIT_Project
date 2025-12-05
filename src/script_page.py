@@ -77,11 +77,10 @@ class ScriptPage:
             key="script_editor",
             placeholder="INT. LOCATION - TIME\nCharacter: Dialogue...",
         )
-        # Keep state synchronized with the text area edits
         if updated_text != current_text:
             self.state.set_script(updated_text)
-            st.session_state["script_editor"] = updated_text
             self._maybe_regenerate_structure(updated_text)
+
         # Explicit confirm to generate/update structured JSON via LLM
         if st.button("Confirm & Generate Structured JSON", key="confirm_generate_json"):
             with st.spinner("Generating structured JSON from script..."):

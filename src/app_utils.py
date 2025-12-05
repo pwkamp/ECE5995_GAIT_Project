@@ -1,7 +1,6 @@
 
 import json
 from pathlib import Path
-from datetime import datetime
 
 
 def append_beat(self, description: str) -> None:
