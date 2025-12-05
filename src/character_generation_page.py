@@ -70,13 +70,16 @@ class CharacterGenerationPage:
             self._render_background(structured_scene)
 
 
-    # Character inputs
     def _render_media_characters(self, structured_scene: Dict) -> None:
         st.markdown("#### Story Characters")
         updated_chars: List[Dict] = []
         for character in structured_scene.get("characters", []):
             with st.expander(character.get("name", "Character"), expanded=False):
-                name = st.text_input("Name", value=character.get("name", ""), key=f"name_{character.get('name')}")
+                name = st.text_input(
+                    "Name",
+                    value=character.get("name", ""),
+                    key=f"name_{character.get('name')}",
+                )
                 age = st.text_area(
                     "Age",
                     value=character.get("age", ""),
@@ -103,14 +106,15 @@ class CharacterGenerationPage:
                         "age": age,
                         "description": description,
                         "style_hint": style_hint,
-                        "prompt": prompt,
+                        "image_prompt": prompt,
                     }
                 )
         if updated_chars:
             structured_scene["characters"] = updated_chars
             self.state.set_structured_scene(structured_scene)
-    
+            au.save_structured_scene(self)
 
+    
     # Character avatars
     def _render_character_avatar_uploads(self, structured_scene: Dict) -> None:
         st.markdown("#### Optional: Upload Existing Avatars")

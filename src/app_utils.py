@@ -26,11 +26,10 @@ def save_structured_scene(self):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     timestamped_path = output_dir / f"structured_scene_{timestamp}.json"
     latest_path = output_dir / "structured_scene.json"
-    with open(timestamped_path, "w", encoding="utf-8") as f:
-        json.dump(scene, f, indent=2)
+    # with open(timestamped_path, "w", encoding="utf-8") as f:
+    #     json.dump(scene, f, indent=2)
     with open(latest_path, "w", encoding="utf-8") as f:
         json.dump(scene, f, indent=2)
-    return str(timestamped_path)
 
 
 def load_structured_scene(self):

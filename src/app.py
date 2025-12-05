@@ -100,18 +100,14 @@ class GAITApp:
 
 def main() -> None:
     dev_mode = st.sidebar.toggle("Dev mode: preload sample script", value=True)
-
     secrets_api_key = st.secrets.get("OPENAI_API_KEY") if hasattr(st, "secrets") else None
     secrets_model = st.secrets.get("OPENAI_MODEL") if hasattr(st, "secrets") else None
-
     api_key = secrets_api_key or os.getenv("OPENAI_API_KEY", "")
     model = secrets_model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
     masked_key = f"...{api_key[-4:]}" if api_key else "MISSING"
     debug_message = f"ENV DEBUG - OPENAI_API_KEY: {masked_key}, OPENAI_MODEL: {model}"
     print(debug_message)
     st.sidebar.info(debug_message)
-
     app = GAITApp(config={"api_key": api_key, "model": model, "dev_mode": dev_mode})
     app.render()
 
