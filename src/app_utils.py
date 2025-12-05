@@ -124,9 +124,7 @@ def _dev_get_default_structured_scene() -> dict:
             },
         ],
         "beats": [
-            {"order": 1, "description": "Establish the setting."},
-            {"order": 2, "description": "Introduce the characters."},
-            {"order": 3, "description": "Present the initial conflict or goal."},
+            {"order": 1, "description": "Establish the setting. Your journey begins here."},
         ]
     }
     
