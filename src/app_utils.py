@@ -23,11 +23,7 @@ def save_structured_scene(self):
         return None
     output_dir = Path("src/output")
     output_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    timestamped_path = output_dir / f"structured_scene_{timestamp}.json"
     latest_path = output_dir / "structured_scene.json"
-    # with open(timestamped_path, "w", encoding="utf-8") as f:
-    #     json.dump(scene, f, indent=2)
     with open(latest_path, "w", encoding="utf-8") as f:
         json.dump(scene, f, indent=2)
 
@@ -79,7 +75,7 @@ def get_formatted_characters(structured_scene: dict) -> str:
             if value is None:
                 continue
             lines.append(f"  {key.replace('_', ' ').title()}: {value}")
-    formatted_characters.append("\n".join(lines))
+        formatted_characters.append("\n".join(lines))
     return "\n\n".join(formatted_characters)
 
 
