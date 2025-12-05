@@ -27,6 +27,10 @@ def save_structured_scene(self):
         json.dump(scene, f, indent=2)
 
 
+def update_app_cache():
+    save_structured_scene()
+
+
 def load_structured_scene(self):
     file_path = Path("src/output/structured_scene.json")
     if not file_path.exists():

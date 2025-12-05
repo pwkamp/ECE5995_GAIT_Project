@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import streamlit as st
+import app_utils as au
 
 try:
     from .app_state import AppState
@@ -177,6 +178,9 @@ class ScriptPage:
             api_key=st.session_state.get("api_key_override") or _self.config.get("api_key"),  # type: ignore[attr-defined]
             model=st.session_state.get("model_override") or _self.config.get("model"),  # type: ignore[attr-defined]
         )
+
+    def _dev_structured_scene(self) -> dict:
+        return au._dev_get_default_structured_scene()
 
 
     @staticmethod
