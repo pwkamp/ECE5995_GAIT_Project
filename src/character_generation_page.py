@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 import streamlit as st
+import app_utils as au
 
 try:
     from .app_state import AppState
@@ -328,7 +329,7 @@ class CharacterGenerationPage:
         if not needs_update:
             return
         if self.config.get("dev_mode"):
-            structured = self._dev_get_structured_scene()
+            structured = au._dev_get_default_structured_scene()
             self.state.set_structured_scene(structured)
             st.session_state["structured_scene_source_text"] = script_text
             return
@@ -370,48 +371,6 @@ class CharacterGenerationPage:
             f"Leave clean negative space for compositing foreground characters. "
             f"Ensure stylistic consistency with characters: {character_summaries}."
         )
-
-
-    @staticmethod
-    def _dev_get_structured_scene() -> Dict:
-        return {
-            "scene_title": "Smoothie Showdown",
-            "logline": "Three friends compete to create the ultimate smoothie, leading to hilarious mishaps and playful banter in a colorful kitchen.",
-            "art_style": "Comic, clean lines, bold colors, minimal shading",
-            "background": {
-                "description": "A bright, colorful kitchen filled with fresh fruits and a blender.",
-                "time_of_day": "Late morning",
-                "location": "Kitchen",
-            },
-            "characters": [
-                {
-                    "name": "Character_1",
-                    "age": "01, recently born",
-                    "description": "likes, dislikes, career, and disposition",
-                    "style_hint": "Goofy, playful, leadership",
-                    "image_prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously.",
-                },
-                {
-                    "name": "Character_2",
-                    "age": "25, mid-twenties",
-                    "description": "likes, dislikes, career, and disposition",
-                    "style_hint": "Witty, sharp",
-                    "image_prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression.",
-                },
-                {
-                    "name": "Character_3",
-                    "age": "01, recently born",
-                    "description": "likes, dislikes, career, and disposition",
-                    "style_hint": "Enthusiastic, clueless",
-                    "image_prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile.",
-                },
-            ],
-            "beats": [
-                {"order": 1, "description": "Establish the setting."},
-                {"order": 2, "description": "Introduce the characters."},
-                {"order": 3, "description": "Present the initial conflict or goal."},
-            ]
-        }
 
 
     @staticmethod
