@@ -56,6 +56,48 @@ def load_or_init_structured_scene(self):
 
     return self.state.session.get("structured_scene")
 
+
+def get_current_script(structured_scene: dict):
+    formatted_c = get_formatted_characters(structured_scene)
+    plot_to_pt = get_plot_to_pt(structured_scene)
+    return formatted_c + "\n" + plot_to_pt
+
+
+def get_formatted_characters(structured_scene: dict) -> str:
+    if not structured_scene:
+        return ""
+    beats = structured_scene.get("characters", [])
+    if not beats:
+        return ""
+    characters = structured_scene.get("characters", [])
+    if not characters:
+        return ""
+    formatted_characters = []
+    for c in characters:
+        lines = []
+        name = c.get("name", "")
+        lines.append(f"Character: {name}")
+        for key, value in c.items():
+            if key == "name":
+                continue
+            if value is None:
+                continue
+            lines.append(f"  {key.replace('_', ' ').title()}: {value}")
+    formatted_characters.append("\n".join(lines))
+    return "\n\n".join(formatted_characters)
+
+
+def get_plot_to_pt(structured_scene: dict) -> str:
+    if not structured_scene:
+        return ""
+    beats = structured_scene.get("beats", [])
+    if not beats:
+        return ""
+    beats_sorted = sorted(beats, key=lambda b: b.get("order", 0))
+    descriptions = [b.get("description", "").strip() for b in beats_sorted]
+    return "\n".join(descriptions)
+
+
 def _dev_get_default_structured_scene() -> dict:
     return {
         "scene_title": "Smoothie Showdown",

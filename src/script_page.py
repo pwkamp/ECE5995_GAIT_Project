@@ -25,10 +25,8 @@ class ScriptPage:
     def render(self) -> None:
         st.header(f"{self.icon} Script Workspace")
         st.caption("Capture the scene idea, chat through it, and refine the draft.")
-        # Ensure dev preset JSON exists in dev mode without hitting the API
         if self.config.get("dev_mode") and not self.state.session.get("structured_scene"):
             self.state.set_structured_scene(self._dev_structured_scene())
-        # Sync editor with stored script when first loading
         if "script_editor" not in st.session_state and self.state.session.get("script_text"):
             st.session_state["script_editor"] = self.state.session.get("script_text")
         self._render_chat()

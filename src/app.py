@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import os
 from typing import List, Protocol
-
 import streamlit as st
+import app_utils as au
 
 try:
     from .app_state import AppState
@@ -36,7 +36,6 @@ class GAITApp:
         self.state = AppState()
         self.state.bind()
         self.config = config
-
         self.pages: List[Page] = [
             CharacterGenerationPage(self.state, self.config),
             ScriptPage(self.state, self.config),
@@ -63,29 +62,31 @@ class GAITApp:
     def _maybe_seed_dev_script(self) -> None:
         if not self.config.get("dev_mode"):
             return
-        sample_script = (
-            "**Title: Smoothie Showdown**\n\n"
-            "**Characters:**\n"
-            "- **JAKE** (mid-20s, laid-back, always wearing a goofy hat, loves trying new things)\n"
-            "- **SARAH** (early 30s, health-conscious, sarcastic, always prepared with a witty comeback)\n"
-            "- **MIKE** (late 20s, overly enthusiastic, the “smoothie expert,” a bit clueless)\n\n"
-            "**Scene Description:**\n"
-            "*Time: Late morning. Place: A bright, colorful kitchen filled with fresh fruits and a blender. "
-            "Mood: Light-hearted and playful. Art Style: Comic.*\n\n"
-            "---\n\n"
-            "**(JAKE stands by the blender, holding a banana with a mischievous grin.)**\n\n"
-            "**JAKE**\n(cheerfully)\nI’m making the ultimate smoothie! Banana, spinach, and... (holds up a handful of gummy bears) these!\n\n"
-            "**SARAH**\n(rolling her eyes)\nGummy bears? You do know this is a health thing, right?\n\n"
-            "**(MIKE bounces in, excited.)**\n\n"
-            "**MIKE**\nCan I add chocolate syrup? I read it’s a superfood!\n\n"
-            "**JAKE**\n(grinning)\nSure, let’s just call it a “dessert smoothie.”\n\n"
-            "**SARAH**\n(smirking)\nMore like a “regret smoothie.”\n\n"
-            "**(JAKE presses the blender button; it sputters and sprays smoothie everywhere.)**\n\n"
-            "**JAKE**\n(laughing)\nGuess it’s a “splat-er smoothie!”\n\n"
-            "**(All three burst into laughter.)**\n\n"
-            "---\n\n"
-            "**(End scene.)**"
-        )
+        sample_script = au.get_current_script()
+        if not sample_script:
+            sample_script = (
+                "**Title: Smoothie Showdown**\n\n"
+                "**Characters:**\n"
+                "- **JAKE** (mid-20s, laid-back, always wearing a goofy hat, loves trying new things)\n"
+                "- **SARAH** (early 30s, health-conscious, sarcastic, always prepared with a witty comeback)\n"
+                "- **MIKE** (late 20s, overly enthusiastic, the “smoothie expert,” a bit clueless)\n\n"
+                "**Scene Description:**\n"
+                "*Time: Late morning. Place: A bright, colorful kitchen filled with fresh fruits and a blender. "
+                "Mood: Light-hearted and playful. Art Style: Comic.*\n\n"
+                "---\n\n"
+                "**(JAKE stands by the blender, holding a banana with a mischievous grin.)**\n\n"
+                "**JAKE**\n(cheerfully)\nI’m making the ultimate smoothie! Banana, spinach, and... (holds up a handful of gummy bears) these!\n\n"
+                "**SARAH**\n(rolling her eyes)\nGummy bears? You do know this is a health thing, right?\n\n"
+                "**(MIKE bounces in, excited.)**\n\n"
+                "**MIKE**\nCan I add chocolate syrup? I read it’s a superfood!\n\n"
+                "**JAKE**\n(grinning)\nSure, let’s just call it a “dessert smoothie.”\n\n"
+                "**SARAH**\n(smirking)\nMore like a “regret smoothie.”\n\n"
+                "**(JAKE presses the blender button; it sputters and sprays smoothie everywhere.)**\n\n"
+                "**JAKE**\n(laughing)\nGuess it’s a “splat-er smoothie!”\n\n"
+                "**(All three burst into laughter.)**\n\n"
+                "---\n\n"
+                "**(End scene.)**"
+            )        
         if not st.session_state.get("dev_script_loaded") and not self.state.session.get("script_text"):
             self.state.set_script(sample_script)
             st.session_state["script_editor"] = sample_script
