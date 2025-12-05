@@ -26,7 +26,6 @@ except ImportError:
 class Page(Protocol):
     name: str
     icon: str
-
     def render(self) -> None: ...
 
 
@@ -39,10 +38,10 @@ class GAITApp:
         self.config = config
 
         self.pages: List[Page] = [
-            ScriptPage(self.state, self.config),
             CharacterGenerationPage(self.state, self.config),
+            ScriptPage(self.state, self.config),
             VideoGenerationPage(self.state),
-            StructuredJSONPage(self.state, self.config),
+            StructuredJSONPage(self.state, self.config)
         ]
 
     def render(self) -> None:
@@ -51,16 +50,13 @@ class GAITApp:
             page_icon="GAIT",
             layout="wide",
         )
-
         st.title("GAIT Story Builder")
         st.markdown(
             "Design a scene, mock the AI handoffs, and see how assets move through "
             "the pipeline. Replace the placeholders with live AI calls when ready."
         )
         st.markdown("---")
-
         self._maybe_seed_dev_script()
-
         selected_page = self._sidebar_nav()
         selected_page.render()
 
@@ -104,18 +100,14 @@ class GAITApp:
 
 def main() -> None:
     dev_mode = st.sidebar.toggle("Dev mode: preload sample script", value=True)
-
     secrets_api_key = st.secrets.get("OPENAI_API_KEY") if hasattr(st, "secrets") else None
     secrets_model = st.secrets.get("OPENAI_MODEL") if hasattr(st, "secrets") else None
-
     api_key = secrets_api_key or os.getenv("OPENAI_API_KEY", "")
     model = secrets_model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-
     masked_key = f"...{api_key[-4:]}" if api_key else "MISSING"
     debug_message = f"ENV DEBUG - OPENAI_API_KEY: {masked_key}, OPENAI_MODEL: {model}"
     print(debug_message)
     st.sidebar.info(debug_message)
-
     app = GAITApp(config={"api_key": api_key, "model": model, "dev_mode": dev_mode})
     app.render()
 
