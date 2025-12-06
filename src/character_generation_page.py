@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 import streamlit as st
+import app_utils as au
 
 try:
     from .app_state import AppState
@@ -24,44 +25,66 @@ class CharacterGenerationPage:
         self.state = state
         self.config = config
 
+
     def render(self) -> None:
         st.header(f"{self.icon} Character & Background Generation")
         st.caption(
             "Work with the structured scene, edit character inputs, and generate/refine assets."
         )
-
         if not self.state.session.get("script_text"):
             st.warning("Add a script draft on the Script page first.")
             return
-
         # Ensure structured JSON is current when entering this page
         self._sync_structure_with_script()
-
         self._render_asset_generation()
+
 
     def _render_asset_generation(self) -> None:
         structured_scene = self.state.session.get("structured_scene")
         if not structured_scene:
             st.info("No structured output yet. Update the script to auto-generate JSON.")
             st.stop()
+        self._render_media_characters(structured_scene)
+        self._render_character_avatar_uploads(structured_scene)
+        self._render_image_quality_slider()
+        self._render_chars_and_background_columns(structured_scene)
 
-        st.markdown("#### Optional: Upload Existing Avatars")
-        uploads = st.session_state.setdefault("character_uploads", {})
-        for character in structured_scene.get("characters", []):
-            file = st.file_uploader(
-                f"Upload avatar for {character.get('name')}",
-                type=["png", "jpg", "jpeg"],
-                key=f"upload_{character.get('name')}",
-            )
-            if file:
-                uploads[character.get("name")] = file.read()
-                st.success(f"Avatar uploaded for {character.get('name')}")
 
-        st.markdown("#### Character Inputs")
+    # Quality of generated portraits
+    def _render_image_quality_slider(self) -> None:
+        st.markdown("#### Image Quality")
+        st.select_slider(
+            "Image size",
+            options=["1024x1024", "1024x1792", "1792x1024"],
+            value=st.session_state.get("image_size", "1024x1024"),
+            key="image_size",
+            help="Higher sizes look better but cost more.",
+        )
+
+
+    def _render_chars_and_background_columns(self, structured_scene: Dict) -> None:
+        col_characters, col_background = st.columns([2, 1])
+        with col_characters:
+            self._render_characters(structured_scene)
+        with col_background:
+            self._render_background(structured_scene)
+
+
+    def _render_media_characters(self, structured_scene: Dict) -> None:
+        st.markdown("#### Story Characters")
         updated_chars: List[Dict] = []
         for character in structured_scene.get("characters", []):
             with st.expander(character.get("name", "Character"), expanded=False):
-                name = st.text_input("Name", value=character.get("name", ""), key=f"name_{character.get('name')}")
+                name = st.text_input(
+                    "Name",
+                    value=character.get("name", ""),
+                    key=f"name_{character.get('name')}",
+                )
+                age = st.text_area(
+                    "Age",
+                    value=character.get("age", ""),
+                    key=f"age_{character.get('name')}",
+                )
                 description = st.text_area(
                     "Description",
                     value=character.get("description", ""),
@@ -74,35 +97,39 @@ class CharacterGenerationPage:
                 )
                 prompt = st.text_area(
                     "Prompt",
-                    value=character.get("prompt", ""),
+                    value=character.get("image_prompt", ""),
                     key=f"prompt_{character.get('name')}",
                 )
                 updated_chars.append(
                     {
                         "name": name,
+                        "age": age,
                         "description": description,
                         "style_hint": style_hint,
-                        "prompt": prompt,
+                        "image_prompt": prompt,
                     }
                 )
         if updated_chars:
             structured_scene["characters"] = updated_chars
             self.state.set_structured_scene(structured_scene)
+            au.save_structured_scene(self)
 
-        st.markdown("#### Image Quality")
-        st.select_slider(
-            "Image size",
-            options=["1024x1024", "1024x1792", "1792x1024"],
-            value=st.session_state.get("image_size", "1024x1024"),
-            key="image_size",
-            help="Higher sizes look better but cost more.",
-        )
+    
+    # Character avatars
+    def _render_character_avatar_uploads(self, structured_scene: Dict) -> None:
+        st.markdown("#### Optional: Upload Existing Avatars")
+        uploads = st.session_state.setdefault("character_uploads", {})
+        for character in structured_scene.get("characters", []):
+            name = character.get("name")
+            file = st.file_uploader(
+                f"Upload avatar for {name}",
+                type=["png", "jpg", "jpeg"],
+                key=f"upload_{name}",
+            )
+            if file:
+                uploads[name] = file.read()
+                st.success(f"Avatar uploaded for {name}")
 
-        col_characters, col_background = st.columns([2, 1])
-        with col_characters:
-            self._render_characters(structured_scene)
-        with col_background:
-            self._render_background(structured_scene)
 
     def _render_characters(self, structured_scene: Dict) -> None:
         st.markdown("#### Characters")
@@ -150,7 +177,6 @@ class CharacterGenerationPage:
 
             self.state.set_character_assets(assets)
             st.success("Character images created in sequence.")
-
         assets = self.state.session.get("character_assets", [])
         if assets:
             for character in assets:
@@ -158,7 +184,7 @@ class CharacterGenerationPage:
                 with st.expander(character["name"], expanded=True):
                     st.write("Status:", character["status"])
                     st.write("Art style:", character.get("style", ""))
-                    st.write("Prompt:", character.get("prompt", ""))
+                    st.write("Prompt:", character.get("image_prompt", ""))
                     st.write("Note:", character["note"])
                     if character.get("error"):
                         st.error(character["error"])
@@ -196,7 +222,7 @@ class CharacterGenerationPage:
                             status.update(label=f"{character['name']} updated.", state="complete")
                         character["refinement"] = refinement
                         character["status"] = "updated"
-                        character["prompt"] = prompt
+                        character["image_prompt"] = prompt
                         character["image_bytes"] = image_bytes
                         character["image_url"] = url
                         character["error"] = None
@@ -204,6 +230,7 @@ class CharacterGenerationPage:
                         st.rerun()
         else:
             st.info("No character images yet. Generate to see placeholders.")
+
 
     def _render_background(self, structured_scene: Dict) -> None:
         st.markdown("#### Background")
@@ -223,7 +250,6 @@ class CharacterGenerationPage:
             }
             self.state.set_background_asset(asset)
             st.success("Background uploaded.")
-
         if ButtonRow.single("Generate Background", key="generate_background"):
             background = structured_scene.get("background", {})
             art_style = structured_scene.get("art_style", "realistic")
@@ -247,7 +273,6 @@ class CharacterGenerationPage:
             }
             self.state.set_background_asset(asset)
             st.success("Background created using all characters.")
-
         asset = self.state.session.get("background_asset")
         if asset:
             st.success(f"Background ready: {asset['label']}")
@@ -297,6 +322,7 @@ class CharacterGenerationPage:
         else:
             st.info("No background yet. Generate or upload one.")
 
+
     def _sync_structure_with_script(self) -> None:
         """Refresh structured JSON when entering the page if the script changed."""
         script_text = self.state.session.get("script_text", "")
@@ -306,13 +332,11 @@ class CharacterGenerationPage:
         needs_update = script_text != last or not self.state.session.get("structured_scene")
         if not needs_update:
             return
-
         if self.config.get("dev_mode"):
-            structured = self._dev_structured_scene()
+            structured = au._dev_get_default_structured_scene()
             self.state.set_structured_scene(structured)
             st.session_state["structured_scene_source_text"] = script_text
             return
-
         try:
             client = self._get_client()
             structured = client.generate_structured_scene(script_text)
@@ -321,10 +345,12 @@ class CharacterGenerationPage:
         except Exception as exc:
             st.error(f"Failed to refresh structured JSON: {exc}")
 
+
     def _generate_image(self, prompt: str, reference_note: Optional[str] = None):
         client = self._get_image_client()
         size = st.session_state.get("image_size", "1024x1024")
         return client.generate_image(prompt=prompt, reference_note=reference_note, size=size)
+
 
     @staticmethod
     def _build_character_prompt(character: Dict, style_hint: str, prev_style: str) -> str:
@@ -336,6 +362,7 @@ class CharacterGenerationPage:
             f"Consistent style across all characters; maintain continuity with previous: {prev_style}. "
             f"High-quality, detailed rendering suitable for compositing."
         )
+
 
     @staticmethod
     def _build_background_prompt(background: Dict, art_style: str, character_summaries: str) -> str:
@@ -349,48 +376,6 @@ class CharacterGenerationPage:
             f"Ensure stylistic consistency with characters: {character_summaries}."
         )
 
-    @staticmethod
-    def _dev_structured_scene() -> Dict:
-        return {
-            "scene_title": "Smoothie Showdown",
-            "logline": "Three friends compete to create the ultimate smoothie, leading to hilarious mishaps and playful banter in a colorful kitchen.",
-            "art_style": "Comic, clean lines, bold colors, minimal shading",
-            "background": {
-                "description": "A bright, colorful kitchen filled with fresh fruits and a blender.",
-                "time_of_day": "Late morning",
-                "location": "Kitchen",
-            },
-            "characters": [
-                {
-                    "name": "JAKE",
-                    "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
-                    "style_hint": "Goofy, playful",
-                    "prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously.",
-                },
-                {
-                    "name": "SARAH",
-                    "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
-                    "style_hint": "Witty, sharp",
-                    "prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression.",
-                },
-                {
-                    "name": "MIKE",
-                    "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
-                    "style_hint": "Enthusiastic, clueless",
-                    "prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile.",
-                },
-            ],
-            "beats": [
-                {"order": 1, "description": "JAKE stands by the blender, holding a banana with a mischievous grin."},
-                {"order": 2, "description": "JAKE cheerfully announces his smoothie ingredients, including gummy bears."},
-                {"order": 3, "description": "SARAH rolls her eyes at JAKE's choice of gummy bears."},
-                {"order": 4, "description": "MIKE bounces in, excitedly suggesting chocolate syrup."},
-                {"order": 5, "description": "JAKE agrees to call it a 'dessert smoothie.'"},
-                {"order": 6, "description": "SARAH smirks, calling it a 'regret smoothie.'"},
-                {"order": 7, "description": "JAKE presses the blender button, causing a smoothie explosion."},
-                {"order": 8, "description": "JAKE laughs and calls it a 'splat-er smoothie,' leading to laughter from all."},
-            ],
-        }
 
     @staticmethod
     def _fallback_structure(script_text: str) -> Dict:
@@ -415,9 +400,11 @@ class CharacterGenerationPage:
             "source_excerpt": summary,
         }
 
+
     @st.cache_resource(show_spinner=False)
     def _get_client(_self=None) -> OpenAIChatService:
         return OpenAIChatService()
+
 
     @st.cache_resource(show_spinner=False)
     def _get_image_client(_self=None) -> OpenAIImageService:
