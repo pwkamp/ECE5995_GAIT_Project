@@ -24,6 +24,7 @@ class AppState:
     background_asset: Optional[Dict[str, str]] = None
     assembly_notes: List[str] = field(default_factory=list)
     video_asset: Optional[Dict[str, str]] = None
+    music_asset: Optional[Dict[str, str]] = None
 
     def bind(self) -> None:
         """Ensure session_state has initialized values."""
@@ -35,6 +36,7 @@ class AppState:
         session.setdefault("background_asset", self.background_asset)
         session.setdefault("assembly_notes", self.assembly_notes)
         session.setdefault("video_asset", self.video_asset)
+        session.setdefault("music_asset", self.music_asset)
 
     @property
     def session(self):
@@ -61,3 +63,6 @@ class AppState:
 
     def set_video_asset(self, asset: Dict[str, str]) -> None:
         self.session["video_asset"] = asset
+
+    def set_music_asset(self, asset: Dict[str, str]) -> None:
+        self.session["music_asset"] = asset

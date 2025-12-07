@@ -12,12 +12,14 @@ import streamlit as st
 try:
     from .app_state import AppState
     from .character_generation_page import CharacterGenerationPage
+    from .music_generation_page import MusicGenerationPage
     from .script_page import ScriptPage
     from .structured_json_page import StructuredJSONPage
     from .video_generation_page import VideoGenerationPage
 except ImportError:
     from app_state import AppState
     from character_generation_page import CharacterGenerationPage
+    from music_generation_page import MusicGenerationPage
     from script_page import ScriptPage
     from structured_json_page import StructuredJSONPage
     from video_generation_page import VideoGenerationPage
@@ -38,10 +40,11 @@ class GAITApp:
         self.config = config
 
         self.pages: List[Page] = [
-            CharacterGenerationPage(self.state, self.config),
             ScriptPage(self.state, self.config),
+            CharacterGenerationPage(self.state, self.config),
+            MusicGenerationPage(self.state, self.config),
             VideoGenerationPage(self.state),
-            StructuredJSONPage(self.state, self.config)
+            StructuredJSONPage(self.state, self.config),
         ]
 
     def render(self) -> None:
@@ -102,13 +105,29 @@ def main() -> None:
     dev_mode = st.sidebar.toggle("Dev mode: preload sample script", value=True)
     secrets_api_key = st.secrets.get("OPENAI_API_KEY") if hasattr(st, "secrets") else None
     secrets_model = st.secrets.get("OPENAI_MODEL") if hasattr(st, "secrets") else None
+    secrets_eleven = st.secrets.get("ELEVENLABS_API_KEY") if hasattr(st, "secrets") else None
     api_key = secrets_api_key or os.getenv("OPENAI_API_KEY", "")
     model = secrets_model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    eleven_key = secrets_eleven or os.getenv("ELEVENLABS_API_KEY", "")
+    eleven_length_ms = int(os.getenv("ELEVENLABS_MUSIC_LENGTH_MS", "45000"))
+
     masked_key = f"...{api_key[-4:]}" if api_key else "MISSING"
-    debug_message = f"ENV DEBUG - OPENAI_API_KEY: {masked_key}, OPENAI_MODEL: {model}"
+    masked_music = f"...{eleven_key[-4:]}" if eleven_key else "MISSING"
+    debug_message = (
+        f"ENV DEBUG - OPENAI_API_KEY: {masked_key}, OPENAI_MODEL: {model}, "
+        f"ELEVENLABS_API_KEY: {masked_music}, ELEVENLABS_MUSIC_LENGTH_MS: {eleven_length_ms}"
+    )
     print(debug_message)
     st.sidebar.info(debug_message)
-    app = GAITApp(config={"api_key": api_key, "model": model, "dev_mode": dev_mode})
+    app = GAITApp(
+        config={
+            "api_key": api_key,
+            "model": model,
+            "dev_mode": dev_mode,
+            "elevenlabs_api_key": eleven_key,
+            "elevenlabs_music_length_ms": eleven_length_ms,
+        }
+    )
     app.render()
 
 

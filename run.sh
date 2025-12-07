@@ -37,6 +37,8 @@ case "${1:-}" in
     build)
         print_info "Building Docker containers..."
         check_docker
+        print_info "Resetting cached python packages volume..."
+        docker-compose down -v --remove-orphans >/dev/null 2>&1 || true
         docker-compose build
         print_success "Build complete!"
         ;;
@@ -72,6 +74,8 @@ case "${1:-}" in
     ui|streamlit|app)
         print_info "Starting Streamlit UI..."
         check_docker
+        # Ensure service is running before exec
+        docker-compose up -d python-dev >/dev/null
         print_success "UI will be available at: http://localhost:8501"
         docker-compose exec -d python-dev streamlit run src/app.py --server.port=8501 --server.address=0.0.0.0
         print_success "UI started in background. Access it at http://localhost:8501"
@@ -146,4 +150,3 @@ case "${1:-}" in
         echo "  ./run.sh python src/app.py  # Run Python script"
         ;;
 esac
-

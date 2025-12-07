@@ -24,6 +24,8 @@ switch ($Command.ToLower()) {
     "build" {
         Write-Host "Building Docker containers..."
         Test-Docker
+        Write-Host "Resetting cached python packages volume..."
+        docker-compose down -v --remove-orphans | Out-Null
         docker-compose build
         Write-Host "Build complete."
     }
@@ -80,6 +82,7 @@ switch ($Command.ToLower()) {
     "ui" {
         Write-Host "Starting Streamlit UI..."
         Test-Docker
+        docker-compose up -d python-dev | Out-Null
         Write-Host "UI will be available at: http://localhost:8501"
         docker-compose exec -d python-dev streamlit run src/app.py --server.port=8501 --server.address=0.0.0.0
         Write-Host "UI started in background. Access it at http://localhost:8501"
@@ -88,6 +91,7 @@ switch ($Command.ToLower()) {
     "streamlit" {
         Write-Host "Starting Streamlit UI..."
         Test-Docker
+        docker-compose up -d python-dev | Out-Null
         Write-Host "UI will be available at: http://localhost:8501"
         docker-compose exec -d python-dev streamlit run src/app.py --server.port=8501 --server.address=0.0.0.0
         Write-Host "UI started in background. Access it at http://localhost:8501"
@@ -96,6 +100,7 @@ switch ($Command.ToLower()) {
     "app" {
         Write-Host "Starting Streamlit UI..."
         Test-Docker
+        docker-compose up -d python-dev | Out-Null
         Write-Host "UI will be available at: http://localhost:8501"
         docker-compose exec -d python-dev streamlit run src/app.py --server.port=8501 --server.address=0.0.0.0
         Write-Host "UI started in background. Access it at http://localhost:8501"
