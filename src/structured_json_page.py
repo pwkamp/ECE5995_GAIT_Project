@@ -4,8 +4,10 @@ import streamlit as st
 
 try:
     from .app_state import AppState
+    from . import app_utils as au
 except ImportError:
     from app_state import AppState
+    import app_utils as au
 
 
 class StructuredJSONPage:
@@ -20,10 +22,13 @@ class StructuredJSONPage:
         st.header(f"{self.icon} Structured JSON")
         st.caption("Auto-generated scene structure based on the current script.")
 
+        # Always pull the latest from disk if present; otherwise use session.
+        structured_scene = au.load_or_init_structured_scene(self.state)
+
         if self.config.get("dev_mode") and not self.state.session.get("structured_scene"):
             self.state.set_structured_scene(self._dev_structured_scene())
+            structured_scene = self.state.session.get("structured_scene")
 
-        structured_scene = self.state.session.get("structured_scene")
         if structured_scene:
             st.json(structured_scene, expanded=True)
         else:
