@@ -112,7 +112,7 @@ class CharacterGenerationPage:
         if updated_chars:
             structured_scene["characters"] = updated_chars
             self.state.set_structured_scene(structured_scene)
-            au.save_structured_scene(self)
+            au.save_structured_scene(self.state)
 
     
     # Character avatars
