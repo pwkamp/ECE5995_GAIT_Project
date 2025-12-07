@@ -33,6 +33,8 @@ import sys
 from pathlib import Path
 import urllib.request
 
+import tomllib
+
 import fal_client  # pip install fal-client
 from moviepy.editor import VideoFileClip, concatenate_videoclips  # pip install moviepy
 
@@ -45,6 +47,70 @@ IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif")
 
 def debug(msg: str) -> None:
     print(f"[fal-video] {msg}", flush=True)
+
+
+def load_fal_key_from_secrets() -> str | None:
+    """
+    Try to load FAL_KEY from a .streamlit/secrets.toml file.
+    Supports top-level FAL_KEY or a [fal] section with FAL_KEY/key.
+    """
+    repo_root_candidate = Path(__file__).resolve().parent.parent
+    candidate_paths = [
+        Path.cwd() / ".streamlit" / "secrets.toml",
+        repo_root_candidate / ".streamlit" / "secrets.toml",
+    ]
+
+    for path in candidate_paths:
+        if not path.is_file():
+            continue
+        try:
+            with path.open("rb") as f:
+                data = tomllib.load(f)
+        except Exception as exc:
+            debug(f"Could not read secrets from {path}: {exc}")
+            continue
+
+        if not isinstance(data, dict):
+            continue
+
+        # Top-level FAL_KEY
+        key = data.get("FAL_KEY")
+
+        # Or nested under [fal]
+        if not key:
+            fal_section = data.get("fal")
+            if isinstance(fal_section, dict):
+                key = fal_section.get("FAL_KEY") or fal_section.get("key")
+
+        if key:
+            debug(f"Loaded FAL_KEY from {path}")
+            return str(key)
+
+    return None
+
+
+def resolve_fal_key(provided_key: str | None) -> str:
+    """
+    Resolve fal.ai API key from (in order):
+    1) Explicit CLI argument
+    2) FAL_KEY environment variable
+    3) .streamlit/secrets.toml (top-level FAL_KEY or [fal].FAL_KEY/key)
+    """
+    if provided_key:
+        return provided_key
+
+    env_key = os.getenv("FAL_KEY")
+    if env_key:
+        return env_key
+
+    secrets_key = load_fal_key_from_secrets()
+    if secrets_key:
+        return secrets_key
+
+    raise RuntimeError(
+        "fal.ai API key not provided. Use --fal-key, set FAL_KEY env var, "
+        "or add FAL_KEY to .streamlit/secrets.toml"
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -309,9 +375,10 @@ def concat_videos(video_paths: list[Path], final_path: Path) -> None:
 def main() -> None:
     args = parse_args()
 
-    fal_key = args.fal_key or os.getenv("FAL_KEY")
-    if not fal_key:
-        print("Error: fal.ai API key not provided. Use --fal-key or set FAL_KEY env var.", file=sys.stderr)
+    try:
+        fal_key = resolve_fal_key(args.fal_key)
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
 
     # Configure fal_client global API key :contentReference[oaicite:4]{index=4}
