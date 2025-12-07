@@ -1,47 +1,60 @@
 {
-  "scene_title": "Smoothie Showdown",
-  "logline": "Three friends compete to create the ultimate smoothie, leading to hilarious mishaps and playful banter in a colorful kitchen.",
-  "art_style": "Comic, clean lines, bold colors, minimal shading",
+  "scene_title": "Silent Struggles",
+  "logline": "In a dimly lit factory during the early 1920s, three workers find joy and camaraderie amidst their labor, turning a moment of hardship into laughter and play.",
+  "art_style": "Painterly",
   "background": {
-    "description": "A bright, colorful kitchen filled with fresh fruits and a blender.",
-    "time_of_day": "Late morning",
-    "location": "Kitchen"
+    "description": "A dimly lit factory floor filled with towering machines and scattered tools.",
+    "time_of_day": "mid-afternoon",
+    "location": "factory"
   },
   "characters": [
     {
-      "name": "Character_1",
-      "age": "testing age 2022",
-      "description": "likes, dislikes, career, and disposition",
-      "style_hint": "Goofy, playful, leadership",
-      "image_prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously."
+      "name": "JACK",
+      "description": "A lanky, optimistic young man with a straw hat, always smiling despite the hard work.",
+      "style_hint": "light-hearted, comedic",
+      "prompt": "Lanky young man in a straw hat, smiling, posing dramatically."
     },
     {
-      "name": "Character_2",
-      "age": "25, mid-twenties",
-      "description": "likes, dislikes, career, and disposition",
-      "style_hint": "Witty, sharp",
-      "image_prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression."
+      "name": "LUCY",
+      "description": "A spirited woman with a headscarf, quick-witted, and loves to laugh, with a knack for physical comedy.",
+      "style_hint": "energetic, playful",
+      "prompt": "Spirited woman in a headscarf, pretending to push against an invisible wall, comically straining."
     },
     {
-      "name": "Character_3",
-      "age": "01, recently born",
-      "description": "likes, dislikes, career, and disposition",
-      "style_hint": "Enthusiastic, clueless",
-      "image_prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile."
+      "name": "TED",
+      "description": "A stout, serious fellow with a mustache, often the straight man in their antics, but secretly enjoys the fun.",
+      "style_hint": "dry humor, reluctant",
+      "prompt": "Stout man with a mustache, arms crossed, smirking at the antics of others."
     }
   ],
   "beats": [
     {
       "order": 1,
-      "description": "Establish the setting."
+      "description": "The three workers gather in a cleared space among the machines, taking a moment away from their labor."
     },
     {
       "order": 2,
-      "description": "Introduce the characters."
+      "description": "JACK strikes a dramatic pose, mimicking an invisible wall."
     },
     {
       "order": 3,
-      "description": "Present the initial conflict or goal."
+      "description": "LUCY pretends to push against the wall, her face comically straining."
+    },
+    {
+      "order": 4,
+      "description": "TED watches with a skeptical expression, making a humorous remark."
+    },
+    {
+      "order": 5,
+      "description": "JACK mimics unlocking the wall, and LUCY gasps, pretending to push it over."
+    },
+    {
+      "order": 6,
+      "description": "JACK and LUCY start a playful dance, with TED reluctantly joining in."
+    },
+    {
+      "order": 7,
+      "description": "They all burst into exaggerated laughter, lifting the heavy factory mood."
     }
   ]
 }

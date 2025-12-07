@@ -6,10 +6,12 @@ try:
     from .app_state import AppState
     from .ui_helpers import ButtonRow
     from .services.chat_service import OpenAIChatService
+    from . import app_utils as au
 except ImportError:  # Fallback when run as a standalone script context
     from app_state import AppState
     from ui_helpers import ButtonRow
     from services.chat_service import OpenAIChatService
+    import app_utils as au
 
 
 class ScriptPage:
@@ -82,7 +84,6 @@ class ScriptPage:
         # Keep state synchronized with the text area edits
         if updated_text != current_text:
             self.state.set_script(updated_text)
-            st.session_state["script_editor"] = updated_text
             self._maybe_regenerate_structure(updated_text)
         # Explicit confirm to generate/update structured JSON via LLM
         if st.button("Confirm & Generate Structured JSON", key="confirm_generate_json"):
@@ -94,6 +95,7 @@ class ScriptPage:
                     self.state.set_character_assets([])
                     self.state.set_background_asset(None)
                     st.session_state["structured_scene_source_text"] = self.state.session.get("script_text", "")
+                    au.save_structured_scene(self.state)
                     st.success("Structured JSON updated.")
                 except Exception as exc:
                     st.error(f"Failed to generate structured JSON: {exc}")
@@ -161,6 +163,7 @@ class ScriptPage:
             self.state.set_character_assets([])
             self.state.set_background_asset(None)
             st.session_state["structured_scene_source_text"] = script_text
+            au.save_structured_scene(self.state)
             return
         with st.spinner("Updating structured JSON from script..."):
             try:
@@ -170,6 +173,7 @@ class ScriptPage:
                 self.state.set_character_assets([])
                 self.state.set_background_asset(None)
                 st.session_state["structured_scene_source_text"] = script_text
+                au.save_structured_scene(self.state)
             except Exception as exc:
                 st.error(f"Failed to update structured JSON: {exc}")
 
