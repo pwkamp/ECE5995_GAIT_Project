@@ -15,4 +15,3 @@ elevenlabs>=1.10.0
 # black>=23.0.0
 # flake8>=6.0.0
 fal-client
-

@@ -49,7 +49,7 @@ class MusicGenerationPage:
         scene = self.state.session.get("structured_scene")
         if scene:
             return scene
-        return au.load_or_init_structured_scene(self)
+        return au.load_or_init_structured_scene(self.state)
 
     def _get_sentiment(self, scene: Dict) -> str:
         """

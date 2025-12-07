@@ -1,4 +1,4 @@
-./run.sh shell#!/bin/bash
+#!/bin/bash
 
 # GAIT Project - Run Script
 # This script provides easy commands for managing the Docker development environment
