@@ -15,3 +15,5 @@ elevenlabs>=1.10.0
 # black>=23.0.0
 # flake8>=6.0.0
 fal-client
+moviepy>=1.0.3
+pillow>=10.0.0

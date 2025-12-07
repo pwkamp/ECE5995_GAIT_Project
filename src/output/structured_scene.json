@@ -1,60 +1,68 @@
 {
-  "scene_title": "Silent Struggles",
-  "logline": "In a dimly lit factory during the early 1920s, three workers find joy and camaraderie amidst their labor, turning a moment of hardship into laughter and play.",
-  "art_style": "Painterly",
+  "scene_title": "A Jolly Shift",
+  "logline": "In a bustling early 20th-century factory, three young workers engage in playful antics, finding joy and camaraderie amidst their hard labor.",
+  "art_style": "Black and White, Silent Movie",
   "background": {
-    "description": "A dimly lit factory floor filled with towering machines and scattered tools.",
-    "time_of_day": "mid-afternoon",
-    "location": "factory"
+    "description": "A bustling factory filled with clanking machines and a lively atmosphere.",
+    "time_of_day": "Day",
+    "location": "Early 20th century factory floor"
   },
   "characters": [
     {
-      "name": "JACK",
-      "description": "A lanky, optimistic young man with a straw hat, always smiling despite the hard work.",
-      "style_hint": "light-hearted, comedic",
-      "prompt": "Lanky young man in a straw hat, smiling, posing dramatically."
+      "name": "BOB",
+      "description": "20s, wiry, with a cheeky smile, always looking for a laugh.",
+      "style_hint": "Playful and mischievous",
+      "prompt": "Wiry young man with a cheeky smile, mimicking heavy lifting."
     },
     {
-      "name": "LUCY",
-      "description": "A spirited woman with a headscarf, quick-witted, and loves to laugh, with a knack for physical comedy.",
-      "style_hint": "energetic, playful",
-      "prompt": "Spirited woman in a headscarf, pretending to push against an invisible wall, comically straining."
+      "name": "ALICE",
+      "description": "20s, strong-willed, with a quick wit, often rolling her eyes.",
+      "style_hint": "Sarcastic and witty",
+      "prompt": "Strong-willed young woman, laughing and shaking her head."
     },
     {
       "name": "TED",
-      "description": "A stout, serious fellow with a mustache, often the straight man in their antics, but secretly enjoys the fun.",
-      "style_hint": "dry humor, reluctant",
-      "prompt": "Stout man with a mustache, arms crossed, smirking at the antics of others."
+      "description": "20s, stocky, the gentle giant, laughs easily but is the butt of the jokes.",
+      "style_hint": "Gentle and humorous",
+      "prompt": "Stocky young man, flexing muscles and winking."
     }
   ],
   "beats": [
     {
       "order": 1,
-      "description": "The three workers gather in a cleared space among the machines, taking a moment away from their labor."
+      "description": "The factory hums with machinery; BOB turns to ALICE and TED with a mischievous glint."
     },
     {
       "order": 2,
-      "description": "JACK strikes a dramatic pose, mimicking an invisible wall."
+      "description": "BOB mimes holding a heavy weight, straining amusingly, then drops it with a clatter."
     },
     {
       "order": 3,
-      "description": "LUCY pretends to push against the wall, her face comically straining."
+      "description": "ALICE snorts, covering her mouth to stifle laughter; TED looks confused."
     },
     {
       "order": 4,
-      "description": "TED watches with a skeptical expression, making a humorous remark."
+      "description": "ALICE gestures to BOB, exaggeratingly shaking her head, then pretends to lift an imaginary weight."
     },
     {
       "order": 5,
-      "description": "JACK mimics unlocking the wall, and LUCY gasps, pretending to push it over."
+      "description": "TED chuckles, mimicking ALICE but overdoing it, pretending to be incredibly strong."
     },
     {
       "order": 6,
-      "description": "JACK and LUCY start a playful dance, with TED reluctantly joining in."
+      "description": "BOB pretends to struggle with another imaginary weight, stumbling comically."
     },
     {
       "order": 7,
-      "description": "They all burst into exaggerated laughter, lifting the heavy factory mood."
+      "description": "ALICE laughs, shaking her head, then points at TED, asking if he has a spot for BOB."
+    },
+    {
+      "order": 8,
+      "description": "TED feigns seriousness, nods as if considering, then bursts out laughing; they all join in."
+    },
+    {
+      "order": 9,
+      "description": "Their laughter echoes through the factory as the scene fades out."
     }
   ]
 }
