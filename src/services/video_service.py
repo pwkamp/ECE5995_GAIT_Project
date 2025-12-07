@@ -5,12 +5,12 @@ import textwrap
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# Defer heavy/optional imports so the rest of the app can load even if missing.
+# Defer heavy imports so other pages can load without video deps present.
 try:
     import numpy as np
     from PIL import Image, ImageDraw, ImageFont
-    # moviepy >=2.1 no longer ships the editor convenience module
     from moviepy import AudioFileClip, ImageClip, concatenate_videoclips
+
     _VIDEO_DEPS_ERROR = None
 except Exception as exc:  # pragma: no cover - environment-specific
     np = None
@@ -39,14 +39,12 @@ def generate_video_from_structured_scene(
             "system requirements (ffmpeg) are available. Under Docker, rebuild the image "
             "after updating requirements.txt."
         ) from _VIDEO_DEPS_ERROR
+
     beats: List[Dict] = scene.get("beats") or []
     if not beats:
         raise ValueError("No beats found in structured scene.")
 
-    sorted_beats = sorted(
-        beats,
-        key=lambda b: b.get("order", 0),
-    )
+    sorted_beats = sorted(beats, key=lambda b: b.get("order", 0))
 
     width, height = resolution
     base_image = _prepare_base_canvas(
@@ -78,15 +76,15 @@ def generate_video_from_structured_scene(
 
         video = concatenate_videoclips(clips, method="compose")
         if audio_clip:
-            video = video.set_audio(audio_clip)
+            # MoviePy 2.x uses with_audio instead of set_audio
+            video = video.with_audio(audio_clip)
 
+        # moviepy 2.x removed verbose/logger params
         video.write_videofile(
             str(final_path),
             fps=fps,
             codec="libx264",
             audio_codec="aac",
-            verbose=False,
-            logger=None,
         )
     finally:
         for clip in clips:

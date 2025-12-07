@@ -1,68 +1,63 @@
 {
-  "scene_title": "A Jolly Shift",
-  "logline": "In a bustling early 20th-century factory, three young workers engage in playful antics, finding joy and camaraderie amidst their hard labor.",
-  "art_style": "Black and White, Silent Movie",
+  "scene_title": "Smoothie Showdown",
+  "logline": "A light-hearted kitchen battle ensues as three friends experiment with outrageous smoothie ingredients, leading to unexpected hilarity.",
+  "art_style": "Comic",
   "background": {
-    "description": "A bustling factory filled with clanking machines and a lively atmosphere.",
-    "time_of_day": "Day",
-    "location": "Early 20th century factory floor"
+    "description": "A bright, colorful kitchen filled with fresh fruits and a blender.",
+    "time_of_day": "Late morning",
+    "location": "Kitchen"
   },
   "characters": [
     {
-      "name": "BOB",
-      "description": "20s, wiry, with a cheeky smile, always looking for a laugh.",
-      "style_hint": "Playful and mischievous",
-      "prompt": "Wiry young man with a cheeky smile, mimicking heavy lifting."
+      "name": "JAKE",
+      "age": "",
+      "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
+      "style_hint": "Playful and carefree",
+      "image_prompt": ""
     },
     {
-      "name": "ALICE",
-      "description": "20s, strong-willed, with a quick wit, often rolling her eyes.",
-      "style_hint": "Sarcastic and witty",
-      "prompt": "Strong-willed young woman, laughing and shaking her head."
+      "name": "SARAH",
+      "age": "",
+      "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
+      "style_hint": "Witty and sharp",
+      "image_prompt": ""
     },
     {
-      "name": "TED",
-      "description": "20s, stocky, the gentle giant, laughs easily but is the butt of the jokes.",
-      "style_hint": "Gentle and humorous",
-      "prompt": "Stocky young man, flexing muscles and winking."
+      "name": "MIKE",
+      "age": "",
+      "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
+      "style_hint": "Excitable and naive",
+      "image_prompt": ""
     }
   ],
   "beats": [
     {
       "order": 1,
-      "description": "The factory hums with machinery; BOB turns to ALICE and TED with a mischievous glint."
+      "description": "JAKE stands by the blender, holding a banana with a mischievous grin."
     },
     {
       "order": 2,
-      "description": "BOB mimes holding a heavy weight, straining amusingly, then drops it with a clatter."
+      "description": "SARAH rolls her eyes at JAKE's gummy bear idea."
     },
     {
       "order": 3,
-      "description": "ALICE snorts, covering her mouth to stifle laughter; TED looks confused."
+      "description": "MIKE bounces in, excited about adding chocolate syrup."
     },
     {
       "order": 4,
-      "description": "ALICE gestures to BOB, exaggeratingly shaking her head, then pretends to lift an imaginary weight."
+      "description": "JAKE suggests calling it a 'dessert smoothie.'"
     },
     {
       "order": 5,
-      "description": "TED chuckles, mimicking ALICE but overdoing it, pretending to be incredibly strong."
+      "description": "SARAH smirks, calling it a 'regret smoothie.'"
     },
     {
       "order": 6,
-      "description": "BOB pretends to struggle with another imaginary weight, stumbling comically."
+      "description": "JAKE presses the blender button, causing a smoothie explosion."
     },
     {
       "order": 7,
-      "description": "ALICE laughs, shaking her head, then points at TED, asking if he has a spot for BOB."
-    },
-    {
-      "order": 8,
-      "description": "TED feigns seriousness, nods as if considering, then bursts out laughing; they all join in."
-    },
-    {
-      "order": 9,
-      "description": "Their laughter echoes through the factory as the scene fades out."
+      "description": "All three burst into laughter at the mess."
     }
   ]
 }
