@@ -5,9 +5,8 @@ import os
 import tempfile
 import textwrap
 import time
-import urllib.request
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import requests
 
@@ -16,14 +15,12 @@ try:
     import numpy as np
     from PIL import Image, ImageDraw, ImageFont
     from moviepy import AudioFileClip, ImageClip, VideoFileClip, concatenate_videoclips
-    import fal_client
 
     _VIDEO_DEPS_ERROR = None
 except Exception as exc:  # pragma: no cover - environment-specific
     np = None
     Image = ImageDraw = ImageFont = None
     AudioFileClip = ImageClip = VideoFileClip = concatenate_videoclips = None
-    fal_client = None
     _VIDEO_DEPS_ERROR = exc
 
 
@@ -112,89 +109,80 @@ def generate_video_from_structured_scene(
 # ---------- fal.ai (Pika) generator ----------
 
 def generate_video_with_pika(
+    *args, **kwargs
+) -> Path:
+    raise NotImplementedError("Pika/fal.ai generation has been removed. Use Sora/OpenAI or Local placeholder.")
+
+
+def generate_video_with_sora(
     scene: Dict,
-    background_asset: Optional[Dict],
-    character_assets: List[Dict],
     music_path: Optional[Path] = None,
     seconds_per_beat: int = 4,
     resolution: Tuple[int, int] = (1280, 720),
-    model_id: str = None,
-    fal_key: Optional[str] = None,
+    model_id: Optional[str] = None,
     output_dir: Path = Path("src/output"),
 ) -> Path:
     """
-    Generate a real video by sending composed frames to fal.ai Pika image-to-video.
-    Concatenates clips and optionally layers music.
+    Generate a video via OpenAI's Sora (or compatible video) endpoint.
+    This uses a single prompt distilled from the structured scene and beats.
     """
     if _VIDEO_DEPS_ERROR:
         raise ImportError(
-            "Video dependencies not installed. Please ensure `moviepy`, `pillow`, `fal-client`, "
-            "and ffmpeg are available. Rebuild the image after updating requirements.txt."
+            "Video dependencies not installed. Please ensure `moviepy`, `pillow`, and ffmpeg are available."
         ) from _VIDEO_DEPS_ERROR
-    if fal_client is None:
-        raise ImportError("fal_client is required for Pika generation.")
-
-    fal_client.api_key = _resolve_fal_key(fal_key)
-    model = model_id or os.getenv("PIKA_MODEL_ID", "fal-ai/pika/video")
-
-    beats: List[Dict] = scene.get("beats") or []
-    if not beats:
-        raise ValueError("No beats found in structured scene.")
 
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    tmp_dir = Path(tempfile.mkdtemp(prefix="pika_inputs_", dir=output_dir))
-    clips_dir = output_dir / "pika_clips"
-    clips_dir.mkdir(parents=True, exist_ok=True)
+    beats = scene.get("beats") or []
 
-    base_image = _compose_scene_image(
-        background_asset=background_asset,
-        character_assets=character_assets,
-        resolution=resolution,
+    # If we have beats, split into up to 3 segments and request ~4s clips each to reach ~12s total.
+    if beats:
+        segments = _split_beats(beats, 3)
+        segment_dir = output_dir / "sora_segments"
+        segment_dir.mkdir(parents=True, exist_ok=True)
+        clip_paths: List[Path] = []
+        try:
+            for idx, beat_slice in enumerate(segments, start=1):
+                seg_prompt = _build_sora_prompt_segment(scene, beat_slice)
+                video_result = call_sora_video(
+                    prompt=seg_prompt,
+                    duration=4,  # aim for ~4s per segment
+                    resolution=None,
+                    model_id=model_id,
+                )
+                seg_path = segment_dir / f"segment_{idx:02}.mp4"
+                _store_video_result(video_result, seg_path)
+                clip_paths.append(seg_path)
+
+            final_path = output_dir / "generated_video.mp4"
+            _concat_and_optionally_add_audio(
+                clip_paths=clip_paths,
+                final_path=final_path,
+                music_path=music_path,
+                trim_audio=True,
+            )
+            return final_path
+        finally:
+            for p in segment_dir.glob("segment_*.mp4"):
+                try:
+                    p.unlink()
+                except Exception:
+                    pass
+    # Fallback: single call
+    prompt = _build_sora_prompt(scene)
+    target_duration = max(1, len(beats) * seconds_per_beat)
+    target_duration = min(target_duration, 12)
+    video_result = call_sora_video(
+        prompt=prompt,
+        duration=target_duration,
+        resolution=None,
+        model_id=model_id,
     )
-
-    clip_paths: List[Path] = []
-    try:
-        for idx, beat in enumerate(beats, start=1):
-            frame_path = tmp_dir / f"beat_{idx:02d}.png"
-            frame = _render_frame(
-                base_image=base_image,
-                scene=scene,
-                beat=beat,
-                index=idx,
-                total=len(beats),
-                font_title=_load_fonts()[0],
-                font_body=_load_fonts()[1],
-            )
-            frame.save(frame_path)
-
-            prompt = _build_pika_prompt(scene, beat, character_assets, seconds_per_beat)
-            clip_path = _generate_clip_via_pika(
-                image_path=frame_path,
-                prompt=prompt,
-                model_id=model,
-                output_dir=clips_dir,
-                idx=idx,
-                fal_key=fal_key,
-                resolution=resolution,
-                duration=seconds_per_beat,
-            )
-            clip_paths.append(clip_path)
-
-        final_path = (output_dir / "generated_video.mp4").resolve()
-        _concat_and_optionally_add_audio(
-            clip_paths=clip_paths,
-            final_path=final_path,
-            music_path=music_path,
-        )
-        return final_path
-    finally:
-        # Best-effort cleanup of temp frames
-        for p in tmp_dir.glob("*"):
-            try:
-                p.unlink()
-            except Exception:
-                pass
+    clip_path = output_dir / "generated_video.mp4"
+    _store_video_result(video_result, clip_path)
+    if music_path and Path(music_path).is_file():
+        _overlay_music_to_video(clip_path, Path(music_path))
+    return clip_path
 
 
 def _build_pika_prompt(
@@ -203,20 +191,7 @@ def _build_pika_prompt(
     character_assets: List[Dict],
     seconds_per_beat: int,
 ) -> str:
-    names = ", ".join(c.get("name", "") for c in character_assets) or "characters"
-    art_style = scene.get("art_style", "")
-    background = scene.get("background", {})
-    setting = background.get("location", background.get("description", "scene"))
-    return "\n".join(
-        [
-            f"Create a cinematic shot for this beat: {beat.get('description', '')}",
-            f"Art style: {art_style}",
-            f"Characters present: {names}",
-            f"Setting: {setting}",
-            f"Duration target: ~{seconds_per_beat} seconds.",
-            "No subtitles, no on-screen text, no watermarks. No audio.",
-        ]
-    )
+    raise NotImplementedError("Pika/fal.ai prompts removed. Use Sora/OpenAI.")
 
 
 # ----------- fal.ai REST helpers -----------
@@ -230,35 +205,7 @@ def call_fal_pika(
     model_id: str | None = None,
     fal_key: str | None = None,
 ) -> str:
-    """
-    Submit an image-to-video job to fal.ai Pika and return the final video URL.
-    Uses fal_client to handle queue/polling.
-    """
-    if fal_client is None:
-        raise ImportError("fal_client is required for Pika integration.")
-
-    api_key = fal_key or os.getenv("FAL_KEY")
-    if not api_key:
-        raise RuntimeError("FAL_KEY environment variable not set.")
-
-    model = model_id or os.getenv("PIKA_MODEL_ID") or "fal-ai/pika/v2-turbo/image-to-video"
-    fal_client.api_key = api_key
-
-    image_url = fal_client.upload_file(image_path)
-    arguments: dict = {
-        "image_url": image_url,
-        "prompt": prompt,
-    }
-    if duration is not None:
-        arguments["duration"] = duration
-    if resolution:
-        arguments["resolution"] = resolution
-
-    result = fal_client.subscribe(model, arguments=arguments, with_logs=True)
-    video_url = _extract_video_url(result)
-    if not video_url:
-        raise RuntimeError(f"fal.ai response missing video url: {result}")
-    return video_url
+    raise NotImplementedError("Pika/fal.ai generation removed. Use Sora/OpenAI.")
 
 
 def download_video(url: str, output_path: Path) -> Path:
@@ -277,6 +224,132 @@ def download_video(url: str, output_path: Path) -> Path:
     return output_path
 
 
+def _store_video_result(video_result: Union[str, bytes, bytearray], output_path: Path) -> None:
+    """
+    Persist a video result that may be a URL or raw bytes.
+    """
+    if isinstance(video_result, (bytes, bytearray)):
+        output_path.write_bytes(video_result)
+    else:
+        download_video(str(video_result), output_path)
+
+
+# ----------- OpenAI Sora helpers -----------
+
+def call_sora_video(
+    prompt: str,
+    *,
+    duration: float | None = None,
+    resolution: str | None = None,
+    model_id: str | None = None,
+) -> Union[str, bytes]:
+    """
+    Submit a video generation job to OpenAI (Sora-compatible) and return the video URL.
+    This uses the experimental /v1/videos endpoint shape.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY environment variable not set.")
+
+    model = model_id or os.getenv("SORA_MODEL_ID") or "sora-2"
+    url = "https://api.openai.com/v1/videos"
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload: dict = {
+        "model": model,
+        "prompt": prompt,
+    }
+    if duration is not None:
+        payload["duration"] = duration
+    if resolution:
+        payload["resolution"] = resolution
+
+    resp = requests.post(url, headers=headers, json=payload, timeout=60)
+    if resp.status_code >= 300:
+        # Fallback: retry without duration/resolution if server rejects those fields
+        text = resp.text.lower()
+        if duration is not None and ("duration" in text or "unknown_parameter" in text or "invalid_parameter" in text):
+            payload.pop("duration", None)
+            payload.pop("resolution", None)
+            resp = requests.post(url, headers=headers, json=payload, timeout=60)
+        if resp.status_code >= 300:
+            raise RuntimeError(f"Sora submit failed ({resp.status_code}): {resp.text[:500]}")
+    data = resp.json()
+    job_id = data.get("id")
+    if not job_id:
+        raise RuntimeError(f"Sora response missing job id: {data}")
+
+    # Poll for completion
+    status_url = f"{url}/{job_id}"
+    for _ in range(120):  # up to ~2 minutes
+        poll = requests.get(status_url, headers=headers, timeout=30)
+        if poll.status_code >= 300:
+            raise RuntimeError(f"Sora poll failed ({poll.status_code}): {poll.text[:500]}")
+        pdata = poll.json()
+        state = pdata.get("status") or pdata.get("state")
+        if state in {"succeeded", "completed", "ready"}:
+            video = pdata.get("video") or pdata.get("result") or {}
+            if isinstance(video, dict):
+                video_url = video.get("url") or video.get("download_url")
+                if video_url:
+                    return video_url
+            # Try data array
+            items = pdata.get("data") or []
+            if items and isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict):
+                        candidate = item.get("url") or item.get("download_url")
+                        if candidate:
+                            return candidate
+            # Try files endpoint
+            file_url = _fetch_sora_download_url(job_id, headers)
+            if file_url:
+                return file_url
+            file_bytes = _fetch_sora_file_content(job_id, headers)
+            if file_bytes:
+                return file_bytes
+            # Final fallback: try direct content endpoint
+            direct_bytes = _fetch_sora_job_content(job_id, headers)
+            if direct_bytes:
+                return direct_bytes
+            raise RuntimeError(f"Sora completed but no video url: {pdata}")
+        if state in {"failed", "error"}:
+            raise RuntimeError(f"Sora job failed: {pdata}")
+        time.sleep(2)
+
+    raise RuntimeError("Sora job timed out waiting for completion.")
+
+
+def _build_sora_prompt(scene: Dict) -> str:
+    beats = scene.get("beats", [])
+    beat_lines = "; ".join(b.get("description", "") for b in beats)
+    art_style = scene.get("art_style", "")
+    background = scene.get("background", {})
+    setting = background.get("location", background.get("description", ""))
+    return (
+        f"Create a coherent cinematic sequence in {art_style} style. "
+        f"Setting: {setting}. "
+        f"Story beats: {beat_lines}. "
+        f"No on-screen text or subtitles. No audio."
+    )
+
+
+def _build_sora_prompt_segment(scene: Dict, beats_slice: List[Dict]) -> str:
+    art_style = scene.get("art_style", "")
+    background = scene.get("background", {})
+    setting = background.get("location", background.get("description", ""))
+    beat_lines = "; ".join(b.get("description", "") for b in beats_slice)
+    return (
+        f"Create a coherent cinematic sequence in {art_style} style. "
+        f"Setting: {setting}. "
+        f"Story beats: {beat_lines}. "
+        f"No on-screen text or subtitles. No audio."
+    )
+
+
 def _generate_clip_via_pika(
     image_path: Path,
     prompt: str,
@@ -287,47 +360,14 @@ def _generate_clip_via_pika(
     resolution: Tuple[int, int],
     duration: int,
 ) -> Path:
-    video_url = call_fal_pika(
-        image_path=str(image_path),
-        prompt=prompt,
-        duration=duration,
-        resolution=f"{resolution[0]}x{resolution[1]}",
-        model_id=model_id,
-        fal_key=fal_key,
-    )
-    clip_path = output_dir / f"clip_{idx:02d}.mp4"
-    download_video(video_url, clip_path)
-    return clip_path
-
-
-def _extract_video_url(result: dict) -> str:
-    if not isinstance(result, dict):
-        raise RuntimeError(f"Unexpected response type: {type(result)}")
-    video_url = None
-    video_obj = result.get("video")
-    if isinstance(video_obj, dict):
-        video_url = video_obj.get("url")
-    if not video_url:
-        data = result.get("data")
-        if isinstance(data, dict):
-            video_obj = data.get("video")
-            if isinstance(video_obj, dict):
-                video_url = video_obj.get("url")
-    if not video_url:
-        raise RuntimeError("Could not find video URL in fal.ai response.")
-    return video_url
-
-
-def _download_file(url: str, dest_path: Path) -> None:
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(url) as response, dest_path.open("wb") as out_file:
-        out_file.write(response.read())
+    raise NotImplementedError("Pika/fal.ai generation removed. Use Sora/OpenAI.")
 
 
 def _concat_and_optionally_add_audio(
     clip_paths: List[Path],
     final_path: Path,
     music_path: Optional[Path],
+    trim_audio: bool = False,
 ) -> None:
     clips = []
     audio_clip = None
@@ -337,6 +377,12 @@ def _concat_and_optionally_add_audio(
         video = concatenate_videoclips(clips, method="compose")
         if music_path and Path(music_path).is_file():
             audio_clip = AudioFileClip(str(music_path))
+            if trim_audio:
+                duration = min(getattr(audio_clip, "duration", video.duration) or video.duration, video.duration)
+                if hasattr(audio_clip, "with_duration"):
+                    audio_clip = audio_clip.with_duration(duration)
+                else:
+                    audio_clip = audio_clip.set_duration(duration)
             video = video.with_audio(audio_clip)
         video.write_videofile(
             str(final_path),
@@ -377,6 +423,102 @@ def _prepare_base_canvas(
     return base
 
 
+def _split_beats(beats: List[Dict], parts: int) -> List[List[Dict]]:
+    """
+    Split beats into up to `parts` groups, preserving order.
+    """
+    if parts <= 1 or len(beats) <= 1:
+        return [beats]
+    chunk_size = max(1, (len(beats) + parts - 1) // parts)
+    return [beats[i : i + chunk_size] for i in range(0, len(beats), chunk_size)]
+
+
+def _fetch_sora_download_url(job_id: str, headers: dict) -> Optional[str]:
+    files_url = f"https://api.openai.com/v1/videos/{job_id}/files"
+    resp = requests.get(files_url, headers=headers, timeout=30)
+    if resp.status_code >= 300:
+        return None
+    data = resp.json()
+    items = data.get("data") or []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        mime = item.get("mime_type", "")
+        name = item.get("filename", "")
+        if "video" in mime or name.endswith(".mp4"):
+            return item.get("download_url") or item.get("url")
+    return None
+
+
+def _fetch_sora_file_content(job_id: str, headers: dict) -> Optional[bytes]:
+    files_url = f"https://api.openai.com/v1/videos/{job_id}/files"
+    resp = requests.get(files_url, headers=headers, timeout=30)
+    if resp.status_code >= 300:
+        return None
+    data = resp.json()
+    items = data.get("data") or []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        mime = item.get("mime_type", "")
+        name = item.get("filename", "")
+        if "video" in mime or name.endswith(".mp4"):
+            file_id = item.get("id")
+            if not file_id:
+                continue
+            content_url = f"https://api.openai.com/v1/videos/{job_id}/files/{file_id}/content"
+            content = requests.get(content_url, headers=headers, timeout=60)
+            if content.status_code == 200:
+                return content.content
+    return None
+
+
+def _fetch_sora_job_content(job_id: str, headers: dict) -> Optional[bytes]:
+    content_url = f"https://api.openai.com/v1/videos/{job_id}/content"
+    resp = requests.get(content_url, headers=headers, timeout=60)
+    if resp.status_code == 200:
+        return resp.content
+    return None
+
+
+def _overlay_music_to_video(video_path: Path, music_path: Path) -> None:
+    """
+    Overlay music onto video, trimming audio to video duration.
+    """
+    clips = []
+    video = None
+    audio = None
+    temp_out = video_path.with_suffix(".tmp.mp4")
+    try:
+        video = VideoFileClip(str(video_path))
+        video_duration = video.duration
+        audio = AudioFileClip(str(music_path))
+        trimmed_duration = min(getattr(audio, "duration", video_duration) or video_duration, video_duration)
+        # MoviePy 2.x uses with_duration; fall back to set_duration if needed
+        if hasattr(audio, "with_duration"):
+            audio = audio.with_duration(trimmed_duration)
+        else:
+            audio = audio.set_duration(trimmed_duration)
+        final = video.with_audio(audio)
+        final.write_videofile(
+            str(temp_out),
+            codec="libx264",
+            audio_codec="aac",
+        )
+        video_path.unlink(missing_ok=True)
+        temp_out.replace(video_path)
+    finally:
+        for c in (audio, video):
+            try:
+                if c:
+                    c.close()
+            except Exception:
+                pass
+        if temp_out.exists() and not video_path.exists():
+            try:
+                temp_out.unlink()
+            except Exception:
+                pass
 def _load_fonts() -> Tuple[ImageFont.ImageFont, ImageFont.ImageFont]:
     try:
         title_font = ImageFont.truetype("arial.ttf", 48)
@@ -436,10 +578,6 @@ def _compose_scene_image(
     character_assets: List[Dict],
     resolution: Tuple[int, int],
 ) -> Image.Image:
-    """
-    Compose a simple frame combining background + character images (if available).
-    Characters are laid along the bottom in a row.
-    """
     width, height = resolution
     base = _prepare_base_canvas(
         background_bytes=background_asset.get("image_bytes") if background_asset else None,
@@ -472,30 +610,3 @@ def _compose_scene_image(
         base.alpha_composite(img, dest=(x, y))
 
     return base.convert("RGB")
-
-
-def _resolve_fal_key(provided_key: Optional[str]) -> str:
-    if provided_key:
-        return provided_key
-    env_key = os.getenv("FAL_KEY")
-    if env_key:
-        return env_key
-    # Try secrets file
-    secrets_path = Path(".streamlit/secrets.toml")
-    if secrets_path.exists():
-        try:
-            import tomllib
-
-            with secrets_path.open("rb") as f:
-                data = tomllib.load(f)
-            if isinstance(data, dict):
-                key = data.get("FAL_KEY")
-                if not key:
-                    fal_section = data.get("fal")
-                    if isinstance(fal_section, dict):
-                        key = fal_section.get("FAL_KEY") or fal_section.get("key")
-                if key:
-                    return str(key)
-        except Exception:
-            pass
-    raise RuntimeError("FAL_KEY not found. Set FAL_KEY env var or add it to .streamlit/secrets.toml.")

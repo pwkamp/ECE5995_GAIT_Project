@@ -1,67 +1,52 @@
 {
   "scene_title": "Smoothie Showdown",
-  "logline": "Three friends compete to create the ultimate smoothie, blending health with hilarity in a colorful kitchen.",
+  "logline": "Three friends compete to make the ultimate smoothie in a playful kitchen showdown filled with humor and unexpected ingredients.",
   "art_style": "Comic",
   "background": {
-    "description": "A bright, colorful kitchen filled with fresh fruits and a blender.",
+    "description": "A bright, colorful kitchen filled with fresh fruits and a blender on the counter.",
     "time_of_day": "Late morning",
     "location": "Kitchen"
   },
   "characters": [
     {
       "name": "JAKE",
-      "age": "",
-      "description": "Mid-20s, laid-back, goofy hat, loves trying new things.",
-      "style_hint": "Casual and playful",
-      "image_prompt": ""
+      "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
+      "style_hint": "Casual with a quirky hat, relaxed posture, mischievous grin.",
+      "prompt": "young man mid-20s, goofy hat, casual clothes, holding banana, playful expression"
     },
     {
       "name": "SARAH",
-      "age": "",
-      "description": "Early 30s, health-conscious, sarcastic, witty.",
-      "style_hint": "Smart and sassy",
-      "image_prompt": ""
+      "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
+      "style_hint": "Smart casual, confident stance, eye-roll or smirk.",
+      "prompt": "woman early 30s, health-conscious look, sarcastic expression, casual smart outfit"
     },
     {
       "name": "MIKE",
-      "age": "",
-      "description": "Late 20s, overly enthusiastic, smoothie expert, a bit clueless.",
-      "style_hint": "Eager and cheerful",
-      "image_prompt": ""
+      "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
+      "style_hint": "Energetic pose, bright eyes, eager smile.",
+      "prompt": "young man late 20s, enthusiastic expression, casual sporty clothes"
     }
   ],
   "beats": [
     {
       "order": 1,
-      "description": "JAKE stands by the blender, holding a banana with a mischievous grin."
+      "description": "Jake stands by the blender holding a banana with a mischievous grin, announcing his smoothie ingredients including gummy bears."
     },
     {
       "order": 2,
-      "description": "SARAH rolls her eyes at JAKE's gummy bears."
+      "description": "Sarah rolls her eyes, sarcastically questioning Jake's choice of gummy bears for a health smoothie."
     },
     {
       "order": 3,
-      "description": "MIKE bounces in, excited about adding chocolate syrup."
+      "description": "Mike enters excitedly, asking if he can add chocolate syrup, claiming it's a superfood."
     },
     {
       "order": 4,
-      "description": "JAKE suggests calling it a 'dessert smoothie.'"
+      "description": "Jake grins and calls the concoction a 'dessert smoothie' while Sarah smirks calling it a 'regret smoothie.'"
     },
     {
       "order": 5,
-      "description": "SARAH smirks, calling it a 'regret smoothie.'"
-    },
-    {
-      "order": 6,
-      "description": "JAKE presses the blender button; it sputters and sprays smoothie everywhere."
-    },
-    {
-      "order": 7,
-      "description": "JAKE laughs, calling it a 'splat-er smoothie.'"
-    },
-    {
-      "order": 8,
-      "description": "All three burst into laughter."
+      "description": "Jake presses the blender button; it sputters and sprays smoothie everywhere, leading to laughter among all three."
     }
   ]
 }

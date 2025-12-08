@@ -10,7 +10,7 @@ try:
     from .ui_helpers import ButtonRow
     from .services.video_service import (
         generate_video_from_structured_scene,
-        generate_video_with_pika,
+        generate_video_with_sora,
     )
 except ImportError:  # Fallback when run as a standalone script context
     import app_utils as au
@@ -18,7 +18,7 @@ except ImportError:  # Fallback when run as a standalone script context
     from ui_helpers import ButtonRow
     from services.video_service import (
         generate_video_from_structured_scene,
-        generate_video_with_pika,
+        generate_video_with_sora,
     )
 
 
@@ -47,9 +47,9 @@ class VideoGenerationPage:
         st.markdown("#### Options")
         generator = st.selectbox(
             "Video generator",
-            options=["Pika (fal.ai)", "Local placeholder"],
+            options=["Sora (OpenAI)", "Local placeholder"],
             index=0,
-            help="Pika uses fal.ai image-to-video. Local placeholder just renders static beats.",
+            help="Sora uses OpenAI video; Local renders static beats.",
             key="video_generator",
         )
         seconds_per_beat = st.slider(
@@ -75,10 +75,10 @@ class VideoGenerationPage:
             help="Uses src/output/scene_music.mp3 or the last generated track in memory.",
         )
         model_id = st.text_input(
-            "Pika model id",
-            value=st.session_state.get("pika_model_id", "fal-ai/pika/video"),
-            key="pika_model_id_input",
-            help="fal.ai model id for Pika image-to-video (e.g., fal-ai/pika/video or fal-ai/pika/v2-turbo/image-to-video).",
+            "Model id",
+            value=st.session_state.get("video_model_id", "sora-2"),
+            key="video_model_id_input",
+            help="OpenAI video model id (e.g., sora-2 or sora-2-pro).",
         )
 
         music_path = self._resolve_music_path() if use_music else None
@@ -89,11 +89,9 @@ class VideoGenerationPage:
             try:
                 resolution = self._parse_resolution(resolution_label)
                 with st.status("Rendering video...", expanded=True) as status:
-                    if generator.startswith("Pika"):
-                        video_path = generate_video_with_pika(
+                    if generator.startswith("Sora"):
+                        video_path = generate_video_with_sora(
                             scene=scene,
-                            background_asset=self.state.session.get("background_asset"),
-                            character_assets=self.state.session.get("character_assets") or [],
                             music_path=music_path,
                             seconds_per_beat=seconds_per_beat,
                             resolution=resolution,
