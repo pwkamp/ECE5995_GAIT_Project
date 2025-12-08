@@ -52,15 +52,6 @@ class VideoGenerationPage:
             help="Sora uses OpenAI video; Local renders static beats.",
             key="video_generator",
         )
-        seconds_per_beat = st.slider(
-            "Seconds per beat",
-            min_value=2,
-            max_value=10,
-            value=4,
-            step=1,
-            help="How long each beat card stays on screen.",
-            key="video_seconds_per_beat",
-        )
         resolution_label = st.selectbox(
             "Resolution",
             options=["1280x720", "1920x1080"],
@@ -89,6 +80,7 @@ class VideoGenerationPage:
             try:
                 resolution = self._parse_resolution(resolution_label)
                 with st.status("Rendering video...", expanded=True) as status:
+                    seconds_per_beat = 4
                     if generator.startswith("Sora"):
                         video_path = generate_video_with_sora(
                             scene=scene,
@@ -174,8 +166,4 @@ class VideoGenerationPage:
             )
             return False
 
-        if not self.state.session.get("background_asset"):
-            st.info("No background image found; using a simple gradient backdrop.")
-        if not self.state.session.get("character_assets"):
-            st.info("No character images found; beats will be rendered as text cards only.")
         return True

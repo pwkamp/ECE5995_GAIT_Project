@@ -1,52 +1,56 @@
 {
-  "scene_title": "Smoothie Showdown",
-  "logline": "Three friends compete to make the ultimate smoothie in a playful kitchen showdown filled with humor and unexpected ingredients.",
-  "art_style": "Comic",
+  "scene_title": "Playful Prank in the Factory",
+  "logline": "Edward, Harry, and George share a lighthearted moment of mischief and laughter amid the noisy factory setting.",
+  "art_style": "Realistic with warm tones and dynamic lighting",
   "background": {
-    "description": "A bright, colorful kitchen filled with fresh fruits and a blender on the counter.",
-    "time_of_day": "Late morning",
-    "location": "Kitchen"
+    "description": "Inside a bustling factory with machinery and tools visible, ambient noise implied by visual cues",
+    "time_of_day": "Daytime",
+    "location": "Industrial factory floor"
   },
   "characters": [
     {
-      "name": "JAKE",
-      "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
-      "style_hint": "Casual with a quirky hat, relaxed posture, mischievous grin.",
-      "prompt": "young man mid-20s, goofy hat, casual clothes, holding banana, playful expression"
+      "name": "Edward",
+      "description": "A young factory worker, wearing a cap and work clothes, expressive and playful",
+      "style_hint": "Casual early 20th-century worker attire",
+      "prompt": "young male factory worker in cap and worn clothes, playful expression"
     },
     {
-      "name": "SARAH",
-      "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
-      "style_hint": "Smart casual, confident stance, eye-roll or smirk.",
-      "prompt": "woman early 30s, health-conscious look, sarcastic expression, casual smart outfit"
+      "name": "Harry",
+      "description": "Another factory worker, jovial and teasing, mid-20s",
+      "style_hint": "Similar work attire, friendly demeanor",
+      "prompt": "male factory worker with teasing smile, casual work clothes"
     },
     {
-      "name": "MIKE",
-      "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
-      "style_hint": "Energetic pose, bright eyes, eager smile.",
-      "prompt": "young man late 20s, enthusiastic expression, casual sporty clothes"
+      "name": "George",
+      "description": "Mischievous and grinning, ready to prank, wearing work clothes",
+      "style_hint": "Energetic and sly expression",
+      "prompt": "male factory worker with sly grin, holding rag dipped in oil"
     }
   ],
   "beats": [
     {
       "order": 1,
-      "description": "Jake stands by the blender holding a banana with a mischievous grin, announcing his smoothie ingredients including gummy bears."
+      "description": "Edward and Harry chuckle as George rubs his neck, amused."
     },
     {
       "order": 2,
-      "description": "Sarah rolls her eyes, sarcastically questioning Jake's choice of gummy bears for a health smoothie."
+      "description": "Harry pretends innocence, teasing George about expecting a bucket of grease."
     },
     {
       "order": 3,
-      "description": "Mike enters excitedly, asking if he can add chocolate syrup, claiming it's a superfood."
+      "description": "George grins and says he'll bring the bucket next time."
     },
     {
       "order": 4,
-      "description": "Jake grins and calls the concoction a 'dessert smoothie' while Sarah smirks calling it a 'regret smoothie.'"
+      "description": "George sneaks behind Edward and flicks a rag dipped in oil onto Edward's cap."
     },
     {
       "order": 5,
-      "description": "Jake presses the blender button; it sputters and sprays smoothie everywhere, leading to laughter among all three."
+      "description": "Edward freezes momentarily then laughs, accepting the prank."
+    },
+    {
+      "order": 6,
+      "description": "All three share a conspiratorial laugh as factory noise swells."
     }
   ]
 }

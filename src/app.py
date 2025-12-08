@@ -1,4 +1,4 @@
-"""
+﻿"""
 Streamlit multi-page interface for the GAIT idea-to-video workflow.
 """
 
@@ -67,25 +67,21 @@ class GAITApp:
         if not self.config.get("dev_mode"):
             return
         sample_script = (
-            "**Title: Smoothie Showdown**\n\n"
+            "**Title: Factory Prank**\n\n"
             "**Characters:**\n"
-            "- **JAKE** (mid-20s, laid-back, always wearing a goofy hat, loves trying new things)\n"
-            "- **SARAH** (early 30s, health-conscious, sarcastic, always prepared with a witty comeback)\n"
-            "- **MIKE** (late 20s, overly enthusiastic, the “smoothie expert,” a bit clueless)\n\n"
+            "- **EDWARD** (mid-30s, tall, lean, mischievous ringleader in grease-stained overalls and flat cap)\n"
+            "- **HARRY** (late 20s, stockier, jovial accomplice with suspenders and rolled sleeves)\n"
+            "- **GEORGE** (early 30s, unsuspecting victim, neat cap and vest, cautious demeanor)\n\n"
             "**Scene Description:**\n"
-            "*Time: Late morning. Place: A bright, colorful kitchen filled with fresh fruits and a blender. "
-            "Mood: Light-hearted and playful. Art Style: Comic.*\n\n"
+            "*Time: Day. Place: A gritty early 1900s factory floor with machinery, pipes, and hanging lamps casting stark shadows. "
+            "Mood: Playful silent-film prank. Art Style: Black-and-white, grainy silent film.*\n\n"
             "---\n\n"
-            "**(JAKE stands by the blender, holding a banana with a mischievous grin.)**\n\n"
-            "**JAKE**\n(cheerfully)\nI’m making the ultimate smoothie! Banana, spinach, and... (holds up a handful of gummy bears) these!\n\n"
-            "**SARAH**\n(rolling her eyes)\nGummy bears? You do know this is a health thing, right?\n\n"
-            "**(MIKE bounces in, excited.)**\n\n"
-            "**MIKE**\nCan I add chocolate syrup? I read it’s a superfood!\n\n"
-            "**JAKE**\n(grinning)\nSure, let’s just call it a “dessert smoothie.”\n\n"
-            "**SARAH**\n(smirking)\nMore like a “regret smoothie.”\n\n"
-            "**(JAKE presses the blender button; it sputters and sprays smoothie everywhere.)**\n\n"
-            "**JAKE**\n(laughing)\nGuess it’s a “splat-er smoothie!”\n\n"
-            "**(All three burst into laughter.)**\n\n"
+            "**(EDWARD and HARRY exchange sly glances on the factory floor.)**\n\n"
+            "**EDWARD**\n(whispering)\nReady? When George gets here, lift the lever.\n\n"
+            "**HARRY**\n(grinning)\nHe'll never see it coming.\n\n"
+            "**(GEORGE walks over, adjusting his cap. Edward nods; Harry pulls the lever. A puff of air startles George; a harmless string dangles.)**\n\n"
+            "**GEORGE**\n(startled, then smirking)\nVery funny.\n\n"
+            "**EDWARD**\n(laughing)\nJust a bit of fun to lighten the shift.\n\n"
             "---\n\n"
             "**(End scene.)**"
         )
@@ -133,3 +129,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

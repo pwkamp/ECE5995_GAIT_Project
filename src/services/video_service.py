@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import io
 import os
@@ -7,6 +7,7 @@ import textwrap
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+import base64
 
 import requests
 
@@ -15,12 +16,13 @@ try:
     import numpy as np
     from PIL import Image, ImageDraw, ImageFont
     from moviepy import AudioFileClip, ImageClip, VideoFileClip, concatenate_videoclips
+    from moviepy.audio.AudioClip import CompositeAudioClip
 
     _VIDEO_DEPS_ERROR = None
 except Exception as exc:  # pragma: no cover - environment-specific
     np = None
     Image = ImageDraw = ImageFont = None
-    AudioFileClip = ImageClip = VideoFileClip = concatenate_videoclips = None
+    AudioFileClip = ImageClip = VideoFileClip = concatenate_videoclips = CompositeAudioClip = None
     _VIDEO_DEPS_ERROR = exc
 
 
@@ -120,6 +122,8 @@ def generate_video_with_sora(
     seconds_per_beat: int = 4,
     resolution: Tuple[int, int] = (1280, 720),
     model_id: Optional[str] = None,
+    image_url: Optional[str] = None,
+    image_bytes: Optional[bytes] = None,
     output_dir: Path = Path("src/output"),
 ) -> Path:
     """
@@ -135,15 +139,23 @@ def generate_video_with_sora(
     output_dir.mkdir(parents=True, exist_ok=True)
     beats = scene.get("beats") or []
 
-    # If we have beats, split into up to 3 segments and request ~4s clips each to reach ~12s total.
+    # Optional: derive a visual description from a reference image.
+    # Only attempt vision if we have a real HTTP(S) URL; skip data URLs / raw bytes.
+    image_desc = None
+    if image_url and image_url.startswith(("http://", "https://")):
+        image_desc = describe_image_with_vision(image_url)
+    # If we only have image_bytes (no hosted URL), we currently skip vision
+    # and just rely on the text prompt. This avoids invalid_image_url errors.
+
+    # If we have beats, render one ~4s clip per beat and stitch.
     if beats:
-        segments = _split_beats(beats, 3)
+        segments = [[b] for b in beats]
         segment_dir = output_dir / "sora_segments"
         segment_dir.mkdir(parents=True, exist_ok=True)
         clip_paths: List[Path] = []
         try:
             for idx, beat_slice in enumerate(segments, start=1):
-                seg_prompt = _build_sora_prompt_segment(scene, beat_slice)
+                seg_prompt = _build_sora_prompt_segment(scene, beat_slice, image_desc)
                 video_result = call_sora_video(
                     prompt=seg_prompt,
                     duration=4,  # aim for ~4s per segment
@@ -169,7 +181,7 @@ def generate_video_with_sora(
                 except Exception:
                     pass
     # Fallback: single call
-    prompt = _build_sora_prompt(scene)
+    prompt = _build_sora_prompt(scene, image_desc)
     target_duration = max(1, len(beats) * seconds_per_beat)
     target_duration = min(target_duration, 12)
     video_result = call_sora_video(
@@ -234,6 +246,63 @@ def _store_video_result(video_result: Union[str, bytes, bytearray], output_path:
         download_video(str(video_result), output_path)
 
 
+def describe_image_with_vision(image_url: str, vision_model: Optional[str] = None) -> str:
+    """
+    Send an image URL to a vision-capable chat model to get a description.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY not set for vision description.")
+    model = vision_model or os.getenv("OPENAI_MODEL") or "gpt-4.1-mini"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "Describe this image in rich visual detail. "
+                            "Focus on people, environment, style, lighting, and color."
+                        ),
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": image_url,
+                        },
+                    },
+                ],
+            }
+        ],
+    }
+    resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=60)
+    if resp.status_code >= 300:
+        raise RuntimeError(f"Vision describe failed ({resp.status_code}): {resp.text[:300]}")
+    data = resp.json()
+    choices = data.get("choices") or []
+    if not choices:
+        return ""
+    message = choices[0].get("message", {})
+    return _extract_text_from_message(message)
+
+
+def _extract_text_from_message(message: dict) -> str:
+    content = message.get("content")
+    if isinstance(content, list):
+        texts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") in ("output_text", "text")]
+        if texts:
+            return " ".join(texts).strip()
+    if isinstance(content, str):
+        return content.strip()
+    return ""
+
+
 # ----------- OpenAI Sora helpers -----------
 
 def call_sora_video(
@@ -251,7 +320,7 @@ def call_sora_video(
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY environment variable not set.")
 
-    model = model_id or os.getenv("SORA_MODEL_ID") or "sora-2"
+    model = model_id or os.getenv("SORA_MODEL_ID") or "sora-2-pro"
     url = "https://api.openai.com/v1/videos"
 
     headers = {
@@ -323,30 +392,48 @@ def call_sora_video(
     raise RuntimeError("Sora job timed out waiting for completion.")
 
 
-def _build_sora_prompt(scene: Dict) -> str:
+def _build_sora_prompt(scene: Dict, image_description: Optional[str] = None) -> str:
     beats = scene.get("beats", [])
     beat_lines = "; ".join(b.get("description", "") for b in beats)
     art_style = scene.get("art_style", "")
     background = scene.get("background", {})
     setting = background.get("location", background.get("description", ""))
+    background_desc = background.get("description", "")
+    characters = scene.get("characters", []) or []
+    character_lines = "; ".join(
+        f"{c.get('name','Character')}: {c.get('description','')}" for c in characters
+    )
+    image_line = f"Visual reference: {image_description}. " if image_description else ""
     return (
         f"Create a coherent cinematic sequence in {art_style} style. "
-        f"Setting: {setting}. "
+        f"Setting: {setting}. Environment detail: {background_desc}. "
+        f"Characters: {character_lines}. "
         f"Story beats: {beat_lines}. "
-        f"No on-screen text or subtitles. No audio."
+        f"{image_line}"
+        f"Include natural spoken dialogue and ambient factory sounds; avoid on-screen text or subtitles."
     )
 
 
-def _build_sora_prompt_segment(scene: Dict, beats_slice: List[Dict]) -> str:
+def _build_sora_prompt_segment(
+    scene: Dict, beats_slice: List[Dict], image_description: Optional[str] = None
+) -> str:
     art_style = scene.get("art_style", "")
     background = scene.get("background", {})
     setting = background.get("location", background.get("description", ""))
+    background_desc = background.get("description", "")
+    characters = scene.get("characters", []) or []
+    character_lines = "; ".join(
+        f"{c.get('name','Character')}: {c.get('description','')}" for c in characters
+    )
     beat_lines = "; ".join(b.get("description", "") for b in beats_slice)
+    image_line = f"Visual reference: {image_description}. " if image_description else ""
     return (
         f"Create a coherent cinematic sequence in {art_style} style. "
-        f"Setting: {setting}. "
+        f"Setting: {setting}. Environment detail: {background_desc}. "
+        f"Characters: {character_lines}. "
         f"Story beats: {beat_lines}. "
-        f"No on-screen text or subtitles. No audio."
+        f"{image_line}"
+        f"Include natural spoken dialogue and ambient factory sounds; avoid on-screen text or subtitles."
     )
 
 
@@ -371,19 +458,35 @@ def _concat_and_optionally_add_audio(
 ) -> None:
     clips = []
     audio_clip = None
+    mixed_audio = None
     try:
         for p in clip_paths:
             clips.append(VideoFileClip(str(p)))
         video = concatenate_videoclips(clips, method="compose")
+        concat_duration = sum((getattr(c, "duration", 0) or 0) for c in clips)
+        target_duration = max(concat_duration, getattr(video, "duration", concat_duration) or concat_duration)
         if music_path and Path(music_path).is_file():
             audio_clip = AudioFileClip(str(music_path))
             if trim_audio:
-                duration = min(getattr(audio_clip, "duration", video.duration) or video.duration, video.duration)
+                duration = min(getattr(audio_clip, "duration", target_duration) or target_duration, target_duration)
                 if hasattr(audio_clip, "with_duration"):
                     audio_clip = audio_clip.with_duration(duration)
                 else:
                     audio_clip = audio_clip.set_duration(duration)
-            video = video.with_audio(audio_clip)
+            # Lower background music to ~20% volume
+            try:
+                audio_clip = audio_clip.volumex(0.2)
+            except Exception:
+                try:
+                    audio_clip = audio_clip * 0.2
+                except Exception:
+                    pass
+            base_audio = getattr(video, "audio", None)
+            if base_audio and CompositeAudioClip:
+                mixed_audio = CompositeAudioClip([base_audio, audio_clip])
+                video = video.with_audio(mixed_audio)
+            else:
+                video = video.with_audio(audio_clip)
         video.write_videofile(
             str(final_path),
             codec="libx264",
@@ -395,9 +498,10 @@ def _concat_and_optionally_add_audio(
                 c.close()
             except Exception:
                 pass
-        if audio_clip:
+        for c in (audio_clip, mixed_audio):
             try:
-                audio_clip.close()
+                if c:
+                    c.close()
             except Exception:
                 pass
 
@@ -488,10 +592,11 @@ def _overlay_music_to_video(video_path: Path, music_path: Path) -> None:
     clips = []
     video = None
     audio = None
+    mixed_audio = None
     temp_out = video_path.with_suffix(".tmp.mp4")
     try:
         video = VideoFileClip(str(video_path))
-        video_duration = video.duration
+        video_duration = getattr(video, "duration", 0) or 0
         audio = AudioFileClip(str(music_path))
         trimmed_duration = min(getattr(audio, "duration", video_duration) or video_duration, video_duration)
         # MoviePy 2.x uses with_duration; fall back to set_duration if needed
@@ -499,7 +604,20 @@ def _overlay_music_to_video(video_path: Path, music_path: Path) -> None:
             audio = audio.with_duration(trimmed_duration)
         else:
             audio = audio.set_duration(trimmed_duration)
-        final = video.with_audio(audio)
+        # Lower background music to ~20% volume
+        try:
+            audio = audio.volumex(0.2)
+        except Exception:
+            try:
+                audio = audio * 0.2
+            except Exception:
+                pass
+        base_audio = getattr(video, "audio", None)
+        if base_audio and CompositeAudioClip:
+            mixed_audio = CompositeAudioClip([base_audio, audio])
+            final = video.with_audio(mixed_audio)
+        else:
+            final = video.with_audio(audio)
         final.write_videofile(
             str(temp_out),
             codec="libx264",
@@ -508,7 +626,7 @@ def _overlay_music_to_video(video_path: Path, music_path: Path) -> None:
         video_path.unlink(missing_ok=True)
         temp_out.replace(video_path)
     finally:
-        for c in (audio, video):
+        for c in (audio, video, mixed_audio):
             try:
                 if c:
                     c.close()
@@ -519,6 +637,7 @@ def _overlay_music_to_video(video_path: Path, music_path: Path) -> None:
                 temp_out.unlink()
             except Exception:
                 pass
+
 def _load_fonts() -> Tuple[ImageFont.ImageFont, ImageFont.ImageFont]:
     try:
         title_font = ImageFont.truetype("arial.ttf", 48)
@@ -553,8 +672,8 @@ def _render_frame(
     padding = 40
     text_x = padding
     text_y = panel_top + padding
+    title = f"{scene.get('scene_title', 'Scene')} - Beat {index}/{total}"
 
-    title = f"{scene.get('scene_title', 'Scene')} — Beat {index}/{total}"
     draw.text((text_x, text_y), title, font=font_title, fill=(255, 255, 255, 255))
     text_y += font_title.getbbox(title)[3] + 12
 
@@ -610,3 +729,4 @@ def _compose_scene_image(
         base.alpha_composite(img, dest=(x, y))
 
     return base.convert("RGB")
+
