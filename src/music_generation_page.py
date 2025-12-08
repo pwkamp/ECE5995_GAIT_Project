@@ -119,7 +119,7 @@ class MusicGenerationPage:
             )
 
         direction_default = (
-            "Light, playful underscore with a short hook. Keep it scene-friendly and loopable."
+            "Old-timey silent-film piano underscore: playful, bouncy, with clear melody and period feel."
         )
         user_direction = st.text_area(
             "Additional music direction",

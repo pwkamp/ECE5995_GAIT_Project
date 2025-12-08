@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import streamlit as st
@@ -44,10 +45,9 @@ class CharacterGenerationPage:
         if not structured_scene:
             st.info("No structured output yet. Update the script to auto-generate JSON.")
             st.stop()
-        self._render_media_characters(structured_scene)
-        self._render_character_avatar_uploads(structured_scene)
+        # Simplify: skip per-character/background generation and only produce a single composite image.
         self._render_image_quality_slider()
-        self._render_chars_and_background_columns(structured_scene)
+        self._render_scene_composite(structured_scene)
 
 
     # Quality of generated portraits
@@ -322,6 +322,39 @@ class CharacterGenerationPage:
         else:
             st.info("No background yet. Generate or upload one.")
 
+    def _render_scene_composite(self, structured_scene: Dict) -> None:
+        st.markdown("#### Composite Scene Image")
+        st.caption("Generate one high-quality frame with all characters in the described background (no separate portraits).")
+        if ButtonRow.single("Generate composite scene", key="generate_scene_composite"):
+            prompt = self._build_scene_composite_prompt(structured_scene)
+            size = st.session_state.get("image_size", "1792x1024")
+            with st.status("Rendering composite scene...", expanded=True) as status:
+                try:
+                    img_bytes, url = self._get_image_client().generate_image(prompt=prompt, size=size)
+                    status.update(label="Composite scene generated.", state="complete")
+                except Exception as exc:
+                    status.update(label=f"Failed: {exc}", state="error")
+                    st.error(f"Composite generation failed: {exc}")
+                    return
+
+            st.image(img_bytes, caption="Composite scene")
+            output_path = Path("src/output/scene_composite.png")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(img_bytes)
+            st.success(f"Saved composite scene to {output_path}")
+            st.download_button(
+                label="Download composite",
+                data=img_bytes,
+                file_name="scene_composite.png",
+                mime="image/png",
+            )
+            # Cache in session for downstream use
+            st.session_state["scene_composite"] = {
+                "image_bytes": img_bytes,
+                "url": url,
+                "note": "Composite scene with characters and background.",
+            }
+
 
     def _sync_structure_with_script(self) -> None:
         """Refresh structured JSON when entering the page if the script changed."""
@@ -374,6 +407,29 @@ class CharacterGenerationPage:
             f"No characters, no people, no text, no word balloons. "
             f"Leave clean negative space for compositing foreground characters. "
             f"Ensure stylistic consistency with characters: {character_summaries}."
+        )
+
+    @staticmethod
+    def _build_scene_composite_prompt(structured_scene: Dict) -> str:
+        art_style = structured_scene.get("art_style", "realistic, highly detailed")
+        background = structured_scene.get("background", {})
+        characters = structured_scene.get("characters", [])
+        char_lines = "; ".join(
+            [
+                f"{c.get('name','')}: {c.get('description','')}"
+                for c in characters
+            ]
+        )
+        beats = structured_scene.get("beats", [])
+        beat_text = "; ".join([b.get("description", "") for b in beats[:4]])
+        return (
+            f"One cinematic, high-resolution illustration in {art_style} style showing all main characters together. "
+            f"Setting: {background.get('location', background.get('description', ''))}, "
+            f"time: {background.get('time_of_day', 'Day')}. "
+            f"Characters: {char_lines}. "
+            f"Mood and action: {beat_text}. "
+            f"Full scene in one frame, cohesive lighting, consistent style across characters and environment. "
+            f"No text, no captions, no watermarks."
         )
 
 

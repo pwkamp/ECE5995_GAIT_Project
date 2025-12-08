@@ -12,7 +12,7 @@ except ImportError:
 
 class StructuredJSONPage:
     name = "Structured JSON"
-    icon = "📄"
+    icon = "🧩"
 
     def __init__(self, state: AppState, config: dict):
         self.state = state
@@ -22,7 +22,6 @@ class StructuredJSONPage:
         st.header(f"{self.icon} Structured JSON")
         st.caption("Auto-generated scene structure based on the current script.")
 
-        # Always pull the latest from disk if present; otherwise use session.
         structured_scene = au.load_or_init_structured_scene(self.state)
 
         if self.config.get("dev_mode") and not self.state.session.get("structured_scene"):
@@ -37,42 +36,72 @@ class StructuredJSONPage:
     @staticmethod
     def _dev_structured_scene() -> dict:
         return {
-            "scene_title": "Smoothie Showdown",
-            "logline": "Three friends compete to create the ultimate smoothie, leading to hilarious mishaps and playful banter in a colorful kitchen.",
-            "art_style": "Comic, clean lines, bold colors, minimal shading",
+            "scene_title": "Factory Prank",
+            "logline": "Three men in an early 1900s factory pull a playful prank on one of their own.",
+            "art_style": "Black and white, silent-film style with grainy texture",
             "background": {
-                "description": "A bright, colorful kitchen filled with fresh fruits and a blender.",
-                "time_of_day": "Late morning",
-                "location": "Kitchen",
+                "description": (
+                    "A cavernous early 20th century factory with brick walls stained by soot, "
+                    "rows of iron machines, belts, pistons, scattered wooden crates, "
+                    "and hanging filament bulbs casting hard, dramatic shadows through ribbons of steam."
+                ),
+                "time_of_day": "Day",
+                "location": "Industrial factory interior",
             },
             "characters": [
                 {
-                    "name": "JAKE",
-                    "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
-                    "style_hint": "Goofy, playful",
-                    "image_prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously.",
+                    "name": "EDWARD",
+                    "age": "Mid-30s",
+                    "description": (
+                        "Tall, lean ringleader with a mischievous glint; grease-smudged face, "
+                        "flat cap tilted, rolled sleeves, suspenders over oil-stained overalls, "
+                        "fingerless gloves and scuffed boots. Quick, confident posture."
+                    ),
+                    "style_hint": "Silent film, black-and-white portrait, crisp contrast, rim-lit edges",
+                    "image_prompt": "",
                 },
                 {
-                    "name": "SARAH",
-                    "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
-                    "style_hint": "Witty, sharp",
-                    "image_prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression.",
+                    "name": "HARRY",
+                    "age": "Late 20s",
+                    "description": (
+                        "Stockier accomplice with a broad grin; suspenders, rolled sleeves, patched vest, "
+                        "thick moustache dusted with coal, calloused hands, heavy work boots, relaxed stance."
+                    ),
+                    "style_hint": "Silent film, black-and-white portrait, grainy texture, soft falloff",
+                    "image_prompt": "",
                 },
                 {
-                    "name": "MIKE",
-                    "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
-                    "style_hint": "Enthusiastic, clueless",
-                    "image_prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile.",
+                    "name": "GEORGE",
+                    "age": "Early 30s",
+                    "description": (
+                        "Unsuspecting victim; neat cap and vest over a crisp shirt, pocket watch chain visible, "
+                        "tidy moustache, cautious eyes; stands straighter, sleeves buttoned, gloves tucked in belt."
+                    ),
+                    "style_hint": "Silent film, black-and-white portrait, subtle film grain, chiaroscuro lighting",
+                    "image_prompt": "",
                 },
             ],
             "beats": [
-                {"order": 1, "description": "JAKE stands by the blender, holding a banana with a mischievous grin."},
-                {"order": 2, "description": "JAKE cheerfully announces his smoothie ingredients, including gummy bears."},
-                {"order": 3, "description": "SARAH rolls her eyes at JAKE's choice of gummy bears."},
-                {"order": 4, "description": "MIKE bounces in, excitedly suggesting chocolate syrup."},
-                {"order": 5, "description": "JAKE agrees to call it a 'dessert smoothie.'"},
-                {"order": 6, "description": "SARAH smirks, calling it a 'regret smoothie.'"},
-                {"order": 7, "description": "JAKE presses the blender button, causing a smoothie explosion."},
-                {"order": 8, "description": "JAKE laughs and calls it a 'splat-er smoothie,' leading to laughter from all."},
+                {
+                    "order": 1,
+                    "description": (
+                        "Wide shot of the bustling factory; machinery thumps in the background as Edward and Harry "
+                        "share a conspiratorial grin near a coiled air hose."
+                    ),
+                },
+                {
+                    "order": 2,
+                    "description": (
+                        "Close on Edward rigging a harmless air blast under George's workbench; Harry watches, "
+                        "barely containing laughter."
+                    ),
+                },
+                {
+                    "order": 3,
+                    "description": (
+                        "George approaches, adjusting his cap; Edward signals; Harry tugs the hidden lever—compressed "
+                        "air whooshes and a string pops up; George startles then smirks as the trio chuckles."
+                    ),
+                },
             ],
         }

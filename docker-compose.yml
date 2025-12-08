@@ -9,8 +9,6 @@ services:
     volumes:
       # Mount project directory for live code changes
       - .:/app
-      # Persist pip packages (optional, for faster rebuilds)
-      - python_packages:/usr/local/lib/python3.11/site-packages
     environment:
       - PYTHONUNBUFFERED=1
       # Add your OpenAI API key here or use .env file (recommended)
@@ -23,7 +21,3 @@ services:
       - "8501:8501"
     # Keep container running
     command: tail -f /dev/null
-
-volumes:
-  python_packages:
-

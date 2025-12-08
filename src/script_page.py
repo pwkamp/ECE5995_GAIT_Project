@@ -16,13 +16,11 @@ except ImportError:  # Fallback when run as a standalone script context
 
 class ScriptPage:
     name = "Script"
-    icon = "📝"
-
+    icon = "🖋️"
 
     def __init__(self, state: AppState, config: dict):
         self.state = state
         self.config = config
-
 
     def render(self) -> None:
         st.header(f"{self.icon} Script Workspace")
@@ -36,7 +34,6 @@ class ScriptPage:
         self._render_chat()
         self._render_script_tools()
 
-
     def _render_chat(self) -> None:
         chat_container = st.container()
         for message in self.state.session["chat_history"]:
@@ -44,21 +41,17 @@ class ScriptPage:
                 st.markdown(message["content"])
         prompt = st.chat_input("Describe the scene, characters, and vibe.")
         if prompt:
-            # Echo user message immediately
             self.state.add_chat("user", prompt)
             with chat_container.chat_message("user"):
                 st.markdown(prompt)
-            # Assistant reply with spinner
             with chat_container.chat_message("assistant"), st.spinner("Thinking..."):
                 reply = self._call_model()
                 st.markdown(reply)
             self.state.add_chat("assistant", reply)
-            # Always keep the draft script and structure in sync with the latest assistant reply
             self.state.set_script(reply)
             st.session_state["script_editor"] = reply
             self._maybe_regenerate_structure(reply)
             st.rerun()
-
 
     def _render_script_tools(self) -> None:
         st.markdown("#### Quick Actions")
@@ -67,7 +60,6 @@ class ScriptPage:
                 sample = self._generate_sample_script()
             self.state.set_script(sample)
             st.session_state["script_editor"] = sample
-            # Add to chat history so it appears in the conversation log
             self.state.add_chat("assistant", sample)
             self._maybe_regenerate_structure(sample)
             st.success("Sample script loaded.")
@@ -81,11 +73,9 @@ class ScriptPage:
             key="script_editor",
             placeholder="INT. LOCATION - TIME\nCharacter: Dialogue...",
         )
-        # Keep state synchronized with the text area edits
         if updated_text != current_text:
             self.state.set_script(updated_text)
             self._maybe_regenerate_structure(updated_text)
-        # Explicit confirm to generate/update structured JSON via LLM
         if st.button("Confirm & Generate Structured JSON", key="confirm_generate_json"):
             with st.spinner("Generating structured JSON from script..."):
                 try:
@@ -100,32 +90,29 @@ class ScriptPage:
                 except Exception as exc:
                     st.error(f"Failed to generate structured JSON: {exc}")
 
-
     def _call_model(self) -> str:
-        """Call OpenAI with the current chat history."""
-        # Cache the client to avoid re-instantiation on each interaction.
         @st.cache_resource(show_spinner=False)
         def _get_client() -> OpenAIChatService:
             return OpenAIChatService(
                 api_key=self.config.get("api_key"),
                 model=self.config.get("model"),
             )
+
         client = _get_client()
         try:
             return client.generate_reply(self.state.session["chat_history"])
-        except Exception as exc:  # Broad catch to surface errors in UI
+        except Exception as exc:
             st.error(f"Chat request failed: {exc}")
             return "I'm having trouble reaching the model right now."
 
-
     def _generate_sample_script(self) -> str:
-        """Generate a short (~20s) comedy script via the LLM."""
         @st.cache_resource(show_spinner=False)
         def _get_client() -> OpenAIChatService:
             return OpenAIChatService(
                 api_key=self.config.get("api_key"),
                 model=self.config.get("model"),
             )
+
         client = _get_client()
         try:
             prompt_history = [
@@ -148,15 +135,12 @@ class ScriptPage:
             st.error(f"Sample script generation failed: {exc}")
             return self._sample_script()
 
-
     def _maybe_regenerate_structure(self, script_text: str) -> None:
-        """Auto-regenerate structured JSON when script changes (unless dev mode)."""
         if not script_text.strip():
             return
         last = st.session_state.get("structured_scene_source_text", "")
         if script_text == last and self.state.session.get("structured_scene"):
             return
-        # In dev mode, use the preset to avoid API calls
         if self.config.get("dev_mode"):
             structured = self._dev_structured_scene()
             self.state.set_structured_scene(structured)
@@ -177,7 +161,6 @@ class ScriptPage:
             except Exception as exc:
                 st.error(f"Failed to update structured JSON: {exc}")
 
-
     @st.cache_resource(show_spinner=False)
     def _get_structure_client(_self=None) -> OpenAIChatService:
         return OpenAIChatService(
@@ -185,50 +168,77 @@ class ScriptPage:
             model=st.session_state.get("model_override") or _self.config.get("model"),  # type: ignore[attr-defined]
         )
 
-
     @staticmethod
     def _dev_structured_scene() -> dict:
         return {
-            "scene_title": "Smoothie Showdown",
-            "logline": "Three friends compete to create the ultimate smoothie, leading to hilarious mishaps and playful banter in a colorful kitchen.",
-            "art_style": "Comic, clean lines, bold colors, minimal shading",
+            "scene_title": "Factory Prank",
+            "logline": "Three men in an early 1900s factory pull a playful prank on one of their own.",
+            "art_style": "Black and white, silent-film style with grainy texture",
             "background": {
-                "description": "A bright, colorful kitchen filled with fresh fruits and a blender.",
-                "time_of_day": "Late morning",
-                "location": "Kitchen",
+                "description": (
+                    "A cavernous early 20th century factory with brick walls stained by soot, "
+                    "rows of iron machines, belts, pistons, scattered wooden crates, and hanging "
+                    "filament bulbs casting hard, dramatic shadows through ribbons of steam."
+                ),
+                "time_of_day": "Day",
+                "location": "Industrial factory interior",
             },
             "characters": [
                 {
-                    "name": "JAKE",
-                    "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
-                    "style_hint": "Goofy, playful",
-                    "image_prompt": "A young man with a goofy hat, holding a banana and gummy bears, grinning mischievously.",
+                    "name": "EDWARD",
+                    "age": "Mid-30s",
+                    "description": (
+                        "Tall, lean ringleader with a mischievous glint; grease-smudged face, flat cap tilted, "
+                        "rolled sleeves, suspenders over oil-stained overalls, fingerless gloves and scuffed boots. "
+                        "Quick, confident posture."
+                    ),
+                    "style_hint": "Silent film, black-and-white portrait, crisp contrast, rim-lit edges",
+                    "image_prompt": "",
                 },
                 {
-                    "name": "SARAH",
-                    "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
-                    "style_hint": "Witty, sharp",
-                    "image_prompt": "A woman in her early 30s, rolling her eyes, with a sarcastic expression.",
+                    "name": "HARRY",
+                    "age": "Late 20s",
+                    "description": (
+                        "Stockier accomplice with a broad grin; suspenders, rolled sleeves, patched vest, thick moustache "
+                        "dusted with coal, calloused hands, heavy work boots, relaxed stance."
+                    ),
+                    "style_hint": "Silent film, black-and-white portrait, grainy texture, soft falloff",
+                    "image_prompt": "",
                 },
                 {
-                    "name": "MIKE",
-                    "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
-                    "style_hint": "Enthusiastic, clueless",
-                    "image_prompt": "A young man in his late 20s, bouncing in excitedly, with a big smile.",
+                    "name": "GEORGE",
+                    "age": "Early 30s",
+                    "description": (
+                        "Unsuspecting victim; neat cap and vest over a crisp shirt, pocket watch chain visible, tidy moustache, "
+                        "cautious eyes; stands straighter, sleeves buttoned, gloves tucked in belt."
+                    ),
+                    "style_hint": "Silent film, black-and-white portrait, subtle film grain, chiaroscuro lighting",
+                    "image_prompt": "",
                 },
             ],
             "beats": [
-                {"order": 1, "description": "JAKE stands by the blender, holding a banana with a mischievous grin."},
-                {"order": 2, "description": "JAKE cheerfully announces his smoothie ingredients, including gummy bears."},
-                {"order": 3, "description": "SARAH rolls her eyes at JAKE's choice of gummy bears."},
-                {"order": 4, "description": "MIKE bounces in, excitedly suggesting chocolate syrup."},
-                {"order": 5, "description": "JAKE agrees to call it a 'dessert smoothie.'"},
-                {"order": 6, "description": "SARAH smirks, calling it a 'regret smoothie.'"},
-                {"order": 7, "description": "JAKE presses the blender button, causing a smoothie explosion."},
-                {"order": 8, "description": "JAKE laughs and calls it a 'splat-er smoothie,' leading to laughter from all."},
+                {
+                    "order": 1,
+                    "description": (
+                        "Wide shot of the bustling factory; machinery thumps in the background as Edward and Harry share "
+                        "a conspiratorial grin near a coiled air hose."
+                    ),
+                },
+                {
+                    "order": 2,
+                    "description": (
+                        "Close on Edward rigging a harmless air blast under George's workbench; Harry watches, barely containing laughter."
+                    ),
+                },
+                {
+                    "order": 3,
+                    "description": (
+                        "George approaches, adjusting his cap; Edward signals; Harry tugs the hidden lever—compressed air whooshes "
+                        "and a string pops up; George startles then smirks as the trio chuckles."
+                    ),
+                },
             ],
         }
-
 
     @staticmethod
     def _draft_script_from_prompt(prompt: str) -> str:
@@ -237,7 +247,6 @@ class ScriptPage:
             f"Host: {prompt}\n"
             "Camera pans across the set as the team prepares the scene."
         )
-
 
     @staticmethod
     def _sample_script() -> str:
