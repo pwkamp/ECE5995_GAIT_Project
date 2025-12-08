@@ -8,12 +8,18 @@ try:
     import app_utils as au
     from .app_state import AppState
     from .ui_helpers import ButtonRow
-    from .services.video_service import generate_video_from_structured_scene
+    from .services.video_service import (
+        generate_video_from_structured_scene,
+        generate_video_with_pika,
+    )
 except ImportError:  # Fallback when run as a standalone script context
     import app_utils as au
     from app_state import AppState
     from ui_helpers import ButtonRow
-    from services.video_service import generate_video_from_structured_scene
+    from services.video_service import (
+        generate_video_from_structured_scene,
+        generate_video_with_pika,
+    )
 
 
 class VideoGenerationPage:
@@ -39,6 +45,13 @@ class VideoGenerationPage:
             return
 
         st.markdown("#### Options")
+        generator = st.selectbox(
+            "Video generator",
+            options=["Pika (fal.ai)", "Local placeholder"],
+            index=0,
+            help="Pika uses fal.ai image-to-video. Local placeholder just renders static beats.",
+            key="video_generator",
+        )
         seconds_per_beat = st.slider(
             "Seconds per beat",
             min_value=2,
@@ -61,6 +74,12 @@ class VideoGenerationPage:
             key="video_use_music",
             help="Uses src/output/scene_music.mp3 or the last generated track in memory.",
         )
+        model_id = st.text_input(
+            "Pika model id",
+            value=st.session_state.get("pika_model_id", "fal-ai/pika/video"),
+            key="pika_model_id_input",
+            help="fal.ai model id for Pika image-to-video (e.g., fal-ai/pika/video or fal-ai/pika/v2-turbo/image-to-video).",
+        )
 
         music_path = self._resolve_music_path() if use_music else None
         if use_music and not music_path:
@@ -70,13 +89,25 @@ class VideoGenerationPage:
             try:
                 resolution = self._parse_resolution(resolution_label)
                 with st.status("Rendering video...", expanded=True) as status:
-                    video_path = generate_video_from_structured_scene(
-                        scene=scene,
-                        background_asset=self.state.session.get("background_asset"),
-                        music_path=music_path,
-                        seconds_per_beat=seconds_per_beat,
-                        resolution=resolution,
-                    )
+                    if generator.startswith("Pika"):
+                        video_path = generate_video_with_pika(
+                            scene=scene,
+                            background_asset=self.state.session.get("background_asset"),
+                            character_assets=self.state.session.get("character_assets") or [],
+                            music_path=music_path,
+                            seconds_per_beat=seconds_per_beat,
+                            resolution=resolution,
+                            model_id=model_id,
+                        )
+                    else:
+                        video_path = generate_video_from_structured_scene(
+                            scene=scene,
+                            background_asset=self.state.session.get("background_asset"),
+                            music_path=music_path,
+                            seconds_per_beat=seconds_per_beat,
+                            resolution=resolution,
+                        )
+                    video_path = Path(video_path).resolve()
                     self.state.set_video_asset(
                         {
                             "status": "ready",
@@ -92,10 +123,16 @@ class VideoGenerationPage:
         video_asset = self.state.session.get("video_asset")
         if video_asset:
             st.markdown("#### Playback")
-            st.video(video_asset["url"])
-            st.write("Status:", video_asset.get("status", ""))
-            st.write("Note:", video_asset.get("note", ""))
-            st.code(video_asset["url"], language="text")
+            video_path = Path(video_asset.get("url", ""))
+            if not video_path.is_absolute():
+                video_path = (Path.cwd() / video_path).resolve()
+            if video_path.exists():
+                st.video(str(video_path))
+                st.write("Status:", video_asset.get("status", ""))
+                st.write("Note:", video_asset.get("note", ""))
+                st.code(str(video_path), language="text")
+            else:
+                st.error(f"Video file not found at {video_path}")
         else:
             st.info("No video yet. Generate to see the playback.")
 

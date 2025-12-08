@@ -1,6 +1,6 @@
 {
   "scene_title": "Smoothie Showdown",
-  "logline": "A light-hearted kitchen battle ensues as three friends experiment with outrageous smoothie ingredients, leading to unexpected hilarity.",
+  "logline": "Three friends compete to create the ultimate smoothie, blending health with hilarity in a colorful kitchen.",
   "art_style": "Comic",
   "background": {
     "description": "A bright, colorful kitchen filled with fresh fruits and a blender.",
@@ -11,22 +11,22 @@
     {
       "name": "JAKE",
       "age": "",
-      "description": "Mid-20s, laid-back, always wearing a goofy hat, loves trying new things.",
-      "style_hint": "Playful and carefree",
+      "description": "Mid-20s, laid-back, goofy hat, loves trying new things.",
+      "style_hint": "Casual and playful",
       "image_prompt": ""
     },
     {
       "name": "SARAH",
       "age": "",
-      "description": "Early 30s, health-conscious, sarcastic, always prepared with a witty comeback.",
-      "style_hint": "Witty and sharp",
+      "description": "Early 30s, health-conscious, sarcastic, witty.",
+      "style_hint": "Smart and sassy",
       "image_prompt": ""
     },
     {
       "name": "MIKE",
       "age": "",
-      "description": "Late 20s, overly enthusiastic, the 'smoothie expert,' a bit clueless.",
-      "style_hint": "Excitable and naive",
+      "description": "Late 20s, overly enthusiastic, smoothie expert, a bit clueless.",
+      "style_hint": "Eager and cheerful",
       "image_prompt": ""
     }
   ],
@@ -37,7 +37,7 @@
     },
     {
       "order": 2,
-      "description": "SARAH rolls her eyes at JAKE's gummy bear idea."
+      "description": "SARAH rolls her eyes at JAKE's gummy bears."
     },
     {
       "order": 3,
@@ -53,11 +53,15 @@
     },
     {
       "order": 6,
-      "description": "JAKE presses the blender button, causing a smoothie explosion."
+      "description": "JAKE presses the blender button; it sputters and sprays smoothie everywhere."
     },
     {
       "order": 7,
-      "description": "All three burst into laughter at the mess."
+      "description": "JAKE laughs, calling it a 'splat-er smoothie.'"
+    },
+    {
+      "order": 8,
+      "description": "All three burst into laughter."
     }
   ]
 }
