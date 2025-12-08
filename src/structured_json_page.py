@@ -38,7 +38,7 @@ class StructuredJSONPage:
         return {
             "scene_title": "Factory Prank",
             "logline": "Three men in an early 1900s factory pull a playful prank on one of their own.",
-            "art_style": "Black and white, silent-film style with grainy texture",
+            "art_style": "Friendly cartoon silent-film vibe, black-and-white, cel-shaded with grainy texture",
             "background": {
                 "description": (
                     "A cavernous early 20th century factory with brick walls stained by soot, "
@@ -88,6 +88,12 @@ class StructuredJSONPage:
                         "Wide shot of the bustling factory; machinery thumps in the background as Edward and Harry "
                         "share a conspiratorial grin near a coiled air hose."
                     ),
+                    "dialogue": [
+                        "EDWARD: If this compressor kicks again, we're blaming George.",
+                        "HARRY: He walks in, we trigger it. He'll never see it coming."
+                    ],
+                    "duration_seconds": 5,
+                    "padded_duration_seconds": 8,
                 },
                 {
                     "order": 2,
@@ -95,6 +101,12 @@ class StructuredJSONPage:
                         "Close on Edward rigging a harmless air blast under George's workbench; Harry watches, "
                         "barely containing laughter."
                     ),
+                    "dialogue": [
+                        "EDWARD: Hose is hidden. Just nudge that lever when he sits.",
+                        "HARRY: Quiet, footsteps—pretend you're actually working."
+                    ],
+                    "duration_seconds": 5,
+                    "padded_duration_seconds": 8,
                 },
                 {
                     "order": 3,
@@ -102,6 +114,26 @@ class StructuredJSONPage:
                         "George approaches, adjusting his cap; Edward signals; Harry tugs the hidden lever—compressed "
                         "air whooshes and a string pops up; George startles then smirks as the trio chuckles."
                     ),
+                    "dialogue": [
+                        "GEORGE: What in blazes—was that you two?",
+                        "HARRY: Consider it a wake-up call.",
+                        "EDWARD: Next round's on you at lunch, friend."
+                    ],
+                    "duration_seconds": 4,
+                    "padded_duration_seconds": 8,
+                },
+                {
+                    "order": 4,
+                    "description": (
+                        "The trio gathers back at the workbench, sharing a breathless laugh as the machinery clatters on."
+                    ),
+                    "dialogue": [
+                        "GEORGE: Alright, truce until coffee.",
+                        "EDWARD: Deal—no more surprises.",
+                        "HARRY: For now."
+                    ],
+                    "duration_seconds": 3,
+                    "padded_duration_seconds": 4,
                 },
             ],
         }

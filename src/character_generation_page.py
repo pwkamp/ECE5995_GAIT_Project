@@ -411,7 +411,8 @@ class CharacterGenerationPage:
 
     @staticmethod
     def _build_scene_composite_prompt(structured_scene: Dict) -> str:
-        art_style = structured_scene.get("art_style", "realistic, highly detailed")
+        base_style = structured_scene.get("art_style", "friendly 2D animation, cel-shaded, cartoon")
+        art_style = base_style if any(k in base_style.lower() for k in ["cartoon", "animation", "anime", "comic"]) else f"{base_style}; friendly 2D animation, cel-shaded, cartoon, non-realistic"
         background = structured_scene.get("background", {})
         characters = structured_scene.get("characters", [])
         char_lines = "; ".join(

@@ -76,18 +76,25 @@ class VideoGenerationPage:
         if use_music and not music_path:
             st.info("No saved music found. Generate music first or save a track to src/output/scene_music.mp3.")
 
+        ref_image_bytes, ref_image_url = self._resolve_reference_image()
+        if generator.startswith("Sora") and not (ref_image_bytes or ref_image_url):
+            st.info("No composite reference image found; Sora will rely on text prompts only.")
+
         if ButtonRow.single("Generate video from structured JSON", key="generate_video"):
             try:
                 resolution = self._parse_resolution(resolution_label)
                 with st.status("Rendering video...", expanded=True) as status:
                     seconds_per_beat = 4
+                    raw_path = None
                     if generator.startswith("Sora"):
-                        video_path = generate_video_with_sora(
+                        video_path, raw_path = generate_video_with_sora(
                             scene=scene,
                             music_path=music_path,
                             seconds_per_beat=seconds_per_beat,
                             resolution=resolution,
                             model_id=model_id,
+                            image_bytes=ref_image_bytes,
+                            image_url=ref_image_url,
                         )
                     else:
                         video_path = generate_video_from_structured_scene(
@@ -98,10 +105,14 @@ class VideoGenerationPage:
                             resolution=resolution,
                         )
                     video_path = Path(video_path).resolve()
+                    raw_path = Path(raw_path).resolve() if raw_path else None
                     self.state.set_video_asset(
                         {
                             "status": "ready",
-                            "note": f"Built locally from structured_scene.json ({len(scene.get('beats', []))} beats).",
+                            "note": (
+                                f"Built locally from structured_scene.json ({len(scene.get('beats', []))} beats). "
+                                f"Raw (no music): {raw_path if raw_path else 'n/a'}"
+                            ),
                             "url": str(video_path),
                         }
                     )
@@ -167,3 +178,16 @@ class VideoGenerationPage:
             return False
 
         return True
+
+    def _resolve_reference_image(self) -> tuple[bytes | None, str | None]:
+        """
+        Return in-memory or saved composite scene image for Sora reference.
+        """
+        composite = self.state.session.get("scene_composite") or {}
+        image_bytes = composite.get("image_bytes")
+        image_url = composite.get("url")
+        if not image_bytes:
+            path = Path("src/output/scene_composite.png")
+            if path.exists():
+                image_bytes = path.read_bytes()
+        return image_bytes, image_url
