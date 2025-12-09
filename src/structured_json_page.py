@@ -48,6 +48,10 @@ class StructuredJSONPage:
                 "time_of_day": "Day",
                 "location": "Industrial factory interior",
             },
+            "important_plot_elements": [
+                "Hidden air hose rig beneath George's workbench that releases a harmless puff of air when triggered.",
+                "Loose string that pops up after the lever is pulled, revealing the prank to George."
+            ],
             "characters": [
                 {
                     "name": "EDWARD",

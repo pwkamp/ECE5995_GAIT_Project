@@ -27,6 +27,11 @@ except Exception as exc:  # pragma: no cover - environment-specific
     audio_loop = None
     _VIDEO_DEPS_ERROR = exc
 
+try:
+    from pydub import AudioSegment
+except Exception:
+    AudioSegment = None
+
 
 def _ensure_video_deps() -> Optional[Exception]:
     """
@@ -114,11 +119,13 @@ def generate_video_from_structured_scene(
     resolution: Tuple[int, int] = (1280, 720),
     fps: int = 24,
     output_dir: Path = Path("src/output"),
-) -> Path:
+    music_volume: float = 0.25,
+    music_delay_seconds: float = 0.0,
+    music_start_offset_seconds: float = 0.0,
+) -> Tuple[Path, Path]:
     """
-    Build a simple video from a structured scene by rendering each beat
-    onto an image and concatenating them. Optionally layer background
-    art and existing music if provided.
+    Build a simple video from a structured scene by rendering each beat onto an image and concatenating them.
+    Returns (final_path_with_music_if_any, raw_path_without_music).
     """
     err = _ensure_video_deps()
     if err:
@@ -144,10 +151,9 @@ def generate_video_from_structured_scene(
     clips: List[ImageClip] = []
     output_dir.mkdir(parents=True, exist_ok=True)
     final_path = (output_dir / "generated_video.mp4").resolve()
-
-    audio_clip = None
-    if music_path and Path(music_path).is_file():
-        audio_clip = AudioFileClip(str(music_path))
+    raw_path = (output_dir / "generated_video_nomusic.mp4").resolve()
+    video_duration: float = 0.0
+    video = None
 
     try:
         for idx, beat in enumerate(sorted_beats, start=1):
@@ -163,13 +169,14 @@ def generate_video_from_structured_scene(
             clips.append(ImageClip(np.array(frame)).with_duration(seconds_per_beat))
 
         video = concatenate_videoclips(clips, method="compose")
-        if audio_clip:
-            # MoviePy 2.x uses with_audio instead of set_audio
-            video = video.with_audio(audio_clip)
+        try:
+            video_duration = float(getattr(video, "duration", 0) or 0)
+        except Exception:
+            video_duration = 0.0
 
         # moviepy 2.x removed verbose/logger params
         video.write_videofile(
-            str(final_path),
+            str(raw_path),
             fps=fps,
             codec="libx264",
             audio_codec="aac",
@@ -180,13 +187,27 @@ def generate_video_from_structured_scene(
                 clip.close()
             except Exception:
                 pass
-        if audio_clip:
-            try:
-                audio_clip.close()
-            except Exception:
-                pass
+        try:
+            if video:
+                video.close()
+        except Exception:
+            pass
 
-    return final_path
+    if music_path and Path(music_path).is_file():
+        _overlay_music_to_video(
+            raw_path,
+            Path(music_path),
+            expected_duration=video_duration or None,
+            output_path=final_path,
+            music_volume=music_volume,
+            music_delay_seconds=music_delay_seconds,
+            music_start_offset_seconds=music_start_offset_seconds,
+        )
+    else:
+        if final_path != raw_path and raw_path.exists():
+            final_path.write_bytes(raw_path.read_bytes())
+
+    return final_path, raw_path
 
 
 # ---------- fal.ai (Pika) generator ----------
@@ -202,6 +223,10 @@ def generate_video_with_sora(
     music_path: Optional[Path] = None,
     seconds_per_beat: int = 4,
     resolution: Tuple[int, int] = (1280, 720),
+    sanitize_prompts: bool = False,
+    music_volume: float = 0.25,
+    music_delay_seconds: float = 0.0,
+    music_start_offset_seconds: float = 0.0,
     model_id: Optional[str] = None,
     image_url: Optional[str] = None,
     image_bytes: Optional[bytes] = None,
@@ -255,7 +280,9 @@ def generate_video_with_sora(
         try:
             for idx, beat_slice in enumerate(segments, start=1):
                 duration_hint = _beat_duration_with_buffer(beat_slice[0], seconds_per_beat)
-                seg_prompt = _build_sora_prompt_segment(scene, beat_slice, image_desc, duration_hint)
+                seg_prompt = _build_sora_prompt_segment(
+                    scene, beat_slice, image_desc, duration_hint, sanitize_prompts=sanitize_prompts
+                )
                 video_result = call_sora_video(
                     prompt=seg_prompt,
                     duration=duration_hint,
@@ -281,6 +308,7 @@ def generate_video_with_sora(
                 music_path=music_path,
                 trim_audio=True,
                 expected_duration=sum(segment_durations) if segment_durations else None,
+                music_volume=music_volume,
             )
             return final_path, raw_path
         finally:
@@ -292,7 +320,7 @@ def generate_video_with_sora(
     # Fallback: single call
     target_duration = _total_duration_with_buffer(beats, seconds_per_beat)
     target_duration = min(target_duration, 60)
-    prompt = _build_sora_prompt(scene, image_desc, target_duration)
+    prompt = _build_sora_prompt(scene, image_desc, target_duration, sanitize_prompts=sanitize_prompts)
     video_result = call_sora_video(
         prompt=prompt,
         duration=target_duration,
@@ -305,9 +333,18 @@ def generate_video_with_sora(
     final_path = output_dir / "generated_video.mp4"
     _store_video_result(video_result, raw_path)
     if music_path and Path(music_path).is_file():
-        _overlay_music_to_video(raw_path, Path(music_path), expected_duration=target_duration, output_path=final_path)
+        _overlay_music_to_video(
+            raw_path,
+            Path(music_path),
+            expected_duration=target_duration,
+            output_path=final_path,
+            music_volume=music_volume,
+            music_delay_seconds=music_delay_seconds,
+            music_start_offset_seconds=music_start_offset_seconds,
+        )
     else:
-        raw_path.replace(final_path)
+        if final_path != raw_path and raw_path.exists():
+            final_path.write_bytes(raw_path.read_bytes())
     return final_path, raw_path
 
 
@@ -350,6 +387,7 @@ def download_video(url: str, output_path: Path) -> Path:
     return output_path
 
 
+
 def _store_video_result(video_result: Union[str, bytes, bytearray], output_path: Path) -> None:
     """
     Persist a video result that may be a URL or raw bytes.
@@ -358,6 +396,38 @@ def _store_video_result(video_result: Union[str, bytes, bytearray], output_path:
         output_path.write_bytes(video_result)
     else:
         download_video(str(video_result), output_path)
+
+
+def _fit_audio_to_duration(audio_clip, target_duration: float, allow_loop: bool = True):
+    """
+    Ensure an audio clip exactly matches target_duration.
+    - If longer: trim.
+    - If shorter and allow_loop: loop or tile to cover duration, then trim.
+    - Otherwise: leave as-is.
+    """
+    # Legacy helper no longer used (pydub handles mixing).
+    return audio_clip
+
+
+def _pad_or_loop_audio(segment, target_ms: int, allow_loop: bool = True):
+    """
+    Using pydub: trim or tile+trim to exact target_ms.
+    """
+    if segment is None:
+        return AudioSegment.silent(duration=target_ms)
+    if target_ms <= 0:
+        return segment
+    if len(segment) > target_ms:
+        return segment[:target_ms]
+    if len(segment) == target_ms or not allow_loop:
+        if len(segment) < target_ms:
+            padding = AudioSegment.silent(duration=target_ms - len(segment))
+            return segment + padding
+        return segment
+    # Loop/tile
+    repeats = max(1, int(target_ms // max(len(segment), 1)) + 2)
+    tiled = segment * repeats
+    return tiled[:target_ms]
 
 
 def describe_image_with_vision(image_url: str, vision_model: Optional[str] = None) -> str:
@@ -477,22 +547,28 @@ def call_sora_video(
 
 
 def _build_sora_prompt(
-    scene: Dict, image_description: Optional[str] = None, target_duration: Optional[float] = None
+    scene: Dict,
+    image_description: Optional[str] = None,
+    target_duration: Optional[float] = None,
+    sanitize_prompts: bool = False,
 ) -> str:
     beats = scene.get("beats", [])
-    beat_lines = "; ".join(_safe_text(b.get("description", "")) for b in beats)
-    dialogue_lines = _dialogue_lines(beats)
-    art_style = _cartoonize_style(scene.get("art_style", ""))
+    beat_lines = "; ".join(_maybe_sanitize_text(b.get("description", ""), sanitize_prompts) for b in beats)
+    dialogue_lines = _dialogue_lines(beats, sanitize_prompts=sanitize_prompts)
+    art_style = _style_with_sanitizer(scene.get("art_style", ""), sanitize_prompts)
     background = scene.get("background", {})
     setting = background.get("location", background.get("description", ""))
     background_desc = background.get("description", "")
     characters = scene.get("characters", []) or []
     character_lines = "; ".join(
-        f"{c.get('name','Character')}: {_safe_text(c.get('description',''))}" for c in characters
+        f"{c.get('name','Character')}: {_maybe_sanitize_text(c.get('description',''), sanitize_prompts)}" for c in characters
     )
     image_line = f"Visual reference: {image_description}. " if image_description else ""
     dialogue_prompt = f"Dialogue beats: {dialogue_lines}. " if dialogue_lines else ""
     duration_line = f"Target overall length: ~{target_duration:.1f} seconds with a little breathing room. " if target_duration else ""
+    audio_line = (
+        "Audio: no background music; use only natural spoken dialogue and diegetic sound effects (machinery, footsteps, foley). "
+    )
     return (
         f"Create a coherent cinematic sequence in {art_style} style. "
         f"Setting: {setting}. Environment detail: {background_desc}. "
@@ -501,27 +577,35 @@ def _build_sora_prompt(
         f"{dialogue_prompt}"
         f"{duration_line}"
         f"{image_line}"
+        f"{audio_line}"
         "Tone: lighthearted, playful, family-friendly; no harm, no violence, no injuries, no weapons. "
         f"Include natural spoken dialogue and ambient factory sounds; avoid on-screen text or subtitles."
     )
 
 
 def _build_sora_prompt_segment(
-    scene: Dict, beats_slice: List[Dict], image_description: Optional[str] = None, duration_hint: Optional[float] = None
+    scene: Dict,
+    beats_slice: List[Dict],
+    image_description: Optional[str] = None,
+    duration_hint: Optional[float] = None,
+    sanitize_prompts: bool = False,
 ) -> str:
-    art_style = _cartoonize_style(scene.get("art_style", ""))
+    art_style = _style_with_sanitizer(scene.get("art_style", ""), sanitize_prompts)
     background = scene.get("background", {})
     setting = background.get("location", background.get("description", ""))
     background_desc = background.get("description", "")
     characters = scene.get("characters", []) or []
     character_lines = "; ".join(
-        f"{c.get('name','Character')}: {_safe_text(c.get('description',''))}" for c in characters
+        f"{c.get('name','Character')}: {_maybe_sanitize_text(c.get('description',''), sanitize_prompts)}" for c in characters
     )
-    beat_lines = "; ".join(_safe_text(b.get("description", "")) for b in beats_slice)
-    dialogue_lines = _dialogue_lines(beats_slice)
+    beat_lines = "; ".join(_maybe_sanitize_text(b.get("description", ""), sanitize_prompts) for b in beats_slice)
+    dialogue_lines = _dialogue_lines(beats_slice, sanitize_prompts=sanitize_prompts)
     image_line = f"Visual reference: {image_description}. " if image_description else ""
     dialogue_prompt = f"Dialogue beats: {dialogue_lines}. " if dialogue_lines else ""
     duration_line = f"Target clip length: ~{duration_hint:.1f} seconds with a small buffer. " if duration_hint else ""
+    audio_line = (
+        "Audio: no background music; use only natural spoken dialogue and diegetic sound effects (machinery, footsteps, foley). "
+    )
     return (
         f"Create a coherent cinematic sequence in {art_style} style. "
         f"Setting: {setting}. Environment detail: {background_desc}. "
@@ -530,6 +614,7 @@ def _build_sora_prompt_segment(
         f"{dialogue_prompt}"
         f"{duration_line}"
         f"{image_line}"
+        f"{audio_line}"
         "Tone: lighthearted, playful, family-friendly; no harm, no violence, no injuries, no weapons. "
         f"Use natural, flowing dialogue that fits the action; avoid robotic pacing. "
         f"Include ambient factory sounds; avoid on-screen text or subtitles."
@@ -556,6 +641,7 @@ def _concat_and_optionally_add_audio(
     music_path: Optional[Path],
     trim_audio: bool = False,
     expected_duration: Optional[float] = None,
+    music_volume: float = 0.25,
 ) -> None:
     clips = []
     video = None
@@ -587,7 +673,14 @@ def _concat_and_optionally_add_audio(
             video = None
         if music_path and Path(music_path).is_file():
             target_duration = expected_duration if expected_duration and expected_duration > 0 else total_duration
-            _overlay_music_to_video(raw_path, Path(music_path), trim_audio=trim_audio, expected_duration=target_duration, output_path=final_path)
+            _overlay_music_to_video(
+                raw_path,
+                Path(music_path),
+                trim_audio=trim_audio,
+                expected_duration=target_duration,
+                output_path=final_path,
+                music_volume=music_volume,
+            )
         else:
             if final_path != raw_path:
                 final_path.write_bytes(Path(raw_path).read_bytes())
@@ -635,7 +728,7 @@ def _split_beats(beats: List[Dict], parts: int) -> List[List[Dict]]:
     return [beats[i : i + chunk_size] for i in range(0, len(beats), chunk_size)]
 
 
-def _dialogue_lines(beats: List[Dict]) -> str:
+def _dialogue_lines(beats: List[Dict], sanitize_prompts: bool = False) -> str:
     """Flatten dialogue lines across beats."""
     lines: List[str] = []
     for idx, beat in enumerate(beats, start=1):
@@ -643,7 +736,7 @@ def _dialogue_lines(beats: List[Dict]) -> str:
         if isinstance(dialogue, str):
             dialogue = [dialogue]
         for line in dialogue:
-            text = _safe_text(str(line).strip())
+            text = _maybe_sanitize_text(str(line).strip(), sanitize_prompts)
             if not text:
                 continue
             label = beat.get("order", idx)
@@ -717,6 +810,18 @@ def _safe_text(text: str) -> str:
     for bad, good in _SAFE_REPLACEMENTS.items():
         t = t.replace(bad, good).replace(bad.capitalize(), good.capitalize())
     return t
+
+
+def _maybe_sanitize_text(text: str, sanitize: bool) -> str:
+    if not sanitize:
+        return text
+    return _safe_text(text)
+
+
+def _style_with_sanitizer(style: str, sanitize: bool) -> str:
+    if sanitize:
+        return _cartoonize_style(style)
+    return style or "friendly 2D animation, cel-shaded, cartoon"
 
 
 def _cartoonize_style(style: str) -> str:
@@ -892,9 +997,13 @@ def _overlay_music_to_video(
     trim_audio: bool = True,
     expected_duration: Optional[float] = None,
     output_path: Optional[Path] = None,
+    music_volume: float = 0.25,
+    music_delay_seconds: float = 0.0,
+    music_start_offset_seconds: float = 0.0,
 ) -> None:
     """
     Overlay music onto video, trimming audio to video duration.
+    `music_volume` is a 0..n multiplier (1.0 = original loudness, 0.25 = -6dB-ish).
     """
     err = _ensure_video_deps()
     if err:
@@ -902,38 +1011,69 @@ def _overlay_music_to_video(
             "Video dependencies not installed. Please ensure `moviepy`, `pillow`, and ffmpeg are available. "
             f"Root cause: {err}"
         ) from err
-    clips = []
+    if AudioSegment is None:
+        raise ImportError("pydub is required for audio mixing. Please ensure it is installed in the environment.")
+
     video = None
-    audio = None
-    mixed_audio = None
+    music_audio_clip = None
+    base_audio_clip = None
+    mixed_audio_clip = None
+    temp_files = []
     output_path = output_path or video_path
     temp_out = output_path.with_suffix(".tmp.mp4")
     try:
         video = VideoFileClip(str(video_path))
-        video_duration = getattr(video, "duration", 0) or 0
-        audio = AudioFileClip(str(music_path))
-        audio_duration = getattr(audio, "duration", video_duration) or video_duration
-        target_duration = max(video_duration, expected_duration or 0, 0.1)
-        trimmed_duration = target_duration if trim_audio else audio_duration
-        if audio_loop and (audio_duration < target_duration):
+        video_duration = float(getattr(video, "duration", 0) or 0.0)
+
+        # Load music via pydub
+        music_seg = AudioSegment.from_file(music_path)
+
+        # Determine target duration (seconds)
+        target_duration = video_duration or float(expected_duration or 0) or (len(music_seg) / 1000.0) or 0.1
+        target_ms = int(target_duration * 1000)
+
+        # Apply music start offset (within track)
+        start_offset_ms = max(0, int(music_start_offset_seconds * 1000))
+        if start_offset_ms > 0:
+            if start_offset_ms < len(music_seg):
+                music_seg = music_seg[start_offset_ms:]
+            else:
+                music_seg = AudioSegment.silent(duration=target_ms)
+
+        # Apply delay before music starts
+        lead_ms = max(0, int(music_delay_seconds * 1000))
+        effective_ms = max(0, target_ms - lead_ms)
+
+        # Loop/trim music to remaining duration without regard to volume, then prepend silence
+        music_body = _pad_or_loop_audio(music_seg, effective_ms)
+        music_seg = AudioSegment.silent(duration=lead_ms) + music_body
+
+        # Apply volume gain (pure loudness change)
+        volume = max(0.0, min(float(music_volume), 2.0))
+        if volume <= 0:
+            music_seg = AudioSegment.silent(duration=target_ms)
+        elif volume != 1.0:
+            import math
+
+            gain_db = 20 * math.log10(volume)
+            music_seg = music_seg.apply_gain(gain_db)
+
+        # Export music to temp wav for moviepy mixing
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_mix:
+            temp_files.append(Path(tmp_mix.name))
+            music_seg.export(tmp_mix.name, format="wav")
+            music_audio_clip = AudioFileClip(tmp_mix.name)
+
+        # Combine with base audio if present
+        base_audio_clip = getattr(video, "audio", None)
+        final_audio_clip = music_audio_clip
+        if base_audio_clip and CompositeAudioClip:
             try:
-                audio = audio_loop(audio, duration=target_duration)
+                final_audio_clip = CompositeAudioClip([base_audio_clip, music_audio_clip])
             except Exception:
-                pass
-        # Force music to exact target duration for continuity
-        if hasattr(audio, "with_duration"):
-            audio = audio.with_duration(trimmed_duration)
-        else:
-            audio = audio.set_duration(trimmed_duration)
-        # Lower background music to ~25% volume for headroom
-        try:
-            audio = audio.volumex(0.25)
-        except Exception:
-            try:
-                audio = audio * 0.25
-            except Exception:
-                pass
-        final = video.with_audio(audio)
+                final_audio_clip = music_audio_clip or base_audio_clip
+
+        final = video.with_audio(final_audio_clip)
         final.write_videofile(
             str(temp_out),
             codec="libx264",
@@ -946,10 +1086,16 @@ def _overlay_music_to_video(
             pass
         temp_out.replace(output_path)
     finally:
-        for c in (audio, video, mixed_audio):
+        for c in (music_audio_clip, base_audio_clip, video, mixed_audio_clip):
             try:
                 if c:
                     c.close()
+            except Exception:
+                pass
+        for tmp in temp_files:
+            try:
+                if tmp.exists():
+                    tmp.unlink()
             except Exception:
                 pass
         if temp_out.exists() and not output_path.exists():
@@ -957,6 +1103,44 @@ def _overlay_music_to_video(
                 temp_out.unlink()
             except Exception:
                 pass
+
+
+def mix_music_to_video(
+    raw_video_path: Path,
+    music_path: Path,
+    *,
+    volume: float = 0.25,
+    trim_audio: bool = True,
+    expected_duration: Optional[float] = None,
+    music_delay_seconds: float = 0.0,
+    music_start_offset_seconds: float = 0.0,
+    output_path: Optional[Path] = None,
+) -> Path:
+    """
+    Public helper to blend a raw/no-music video with a backing track at the requested volume.
+    Returns the path to the mixed output.
+    """
+    raw_video_path = Path(raw_video_path)
+    music_path = Path(music_path)
+    if not raw_video_path.is_file():
+        raise FileNotFoundError(f"Raw video not found: {raw_video_path}")
+    if not music_path.is_file():
+        raise FileNotFoundError(f"Music file not found: {music_path}")
+    output_path = Path(output_path) if output_path else raw_video_path.with_name(
+        f"{raw_video_path.stem}_with_music{raw_video_path.suffix}"
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _overlay_music_to_video(
+        raw_video_path,
+        music_path,
+        trim_audio=trim_audio,
+        expected_duration=expected_duration,
+        output_path=output_path,
+        music_volume=volume,
+        music_delay_seconds=music_delay_seconds,
+        music_start_offset_seconds=music_start_offset_seconds,
+    )
+    return output_path
 
 def _load_fonts() -> Tuple[ImageFont.ImageFont, ImageFont.ImageFont]:
     try:

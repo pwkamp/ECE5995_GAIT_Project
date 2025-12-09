@@ -1,36 +1,43 @@
 {
   "scene_title": "Factory Prank",
-  "logline": "Two mischievous factory workers play a harmless prank on their cautious coworker during a shift in an early 1900s factory.",
-  "art_style": "Friendly cartoon silent-film vibe, black-and-white, cel-shaded with grainy texture",
+  "logline": "Two mischievous factory workers play a harmless prank on their cautious colleague during a shift in an early 1900s factory.",
+  "art_style": "Black-and-white, grainy silent film",
   "background": {
     "description": "A gritty early 1900s factory floor with machinery, pipes, and hanging lamps casting stark shadows.",
     "time_of_day": "Day",
     "location": "Factory floor"
   },
+  "important_plot_elements": [
+    "grease-stained overalls",
+    "flat cap",
+    "lever on factory machinery",
+    "harmless puff of air",
+    "dangling string"
+  ],
   "characters": [
     {
       "name": "EDWARD",
       "description": "Mid-30s, tall, lean, mischievous ringleader in grease-stained overalls and flat cap",
-      "style_hint": "Silent film villainous ringleader look",
-      "prompt": "tall lean man, grease-stained overalls, flat cap, mischievous expression, black-and-white grainy silent film style"
+      "style_hint": "Silent film exaggerated expressions",
+      "prompt": "tall lean man in grease-stained overalls and flat cap, mischievous expression, black and white grainy silent film style"
     },
     {
       "name": "HARRY",
       "description": "Late 20s, stockier, jovial accomplice with suspenders and rolled sleeves",
-      "style_hint": "Cheerful sidekick in silent film",
-      "prompt": "stocky man, suspenders, rolled sleeves, grinning, black-and-white grainy silent film style"
+      "style_hint": "Silent film exaggerated expressions",
+      "prompt": "stocky man in suspenders and rolled sleeves, jovial grin, black and white grainy silent film style"
     },
     {
       "name": "GEORGE",
       "description": "Early 30s, unsuspecting victim, neat cap and vest, cautious demeanor",
-      "style_hint": "Silent film cautious worker",
-      "prompt": "man with neat cap and vest, cautious expression, black-and-white grainy silent film style"
+      "style_hint": "Silent film exaggerated expressions",
+      "prompt": "man in neat cap and vest, cautious expression, black and white grainy silent film style"
     }
   ],
   "beats": [
     {
       "order": 1,
-      "description": "Edward and Harry exchange sly glances on the factory floor.",
+      "description": "Edward and Harry exchange sly glances on the factory floor, preparing for the prank.",
       "dialogue": [
         "EDWARD: Ready? When George gets here, lift the lever.",
         "HARRY: He'll never see it coming."
@@ -40,7 +47,7 @@
     },
     {
       "order": 2,
-      "description": "George walks over, adjusting his cap. Edward nods; Harry pulls the lever. A puff of air startles George; a harmless string dangles.",
+      "description": "George walks over adjusting his cap. Edward nods; Harry pulls the lever. A puff of air startles George; a harmless string dangles.",
       "dialogue": [
         "GEORGE: Very funny.",
         "EDWARD: Just a bit of fun to lighten the shift."

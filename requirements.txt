@@ -16,3 +16,4 @@ elevenlabs>=1.10.0
 # flake8>=6.0.0
 moviepy>=1.0.3
 pillow>=10.0.0
+pydub>=0.25.1

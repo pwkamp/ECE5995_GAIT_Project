@@ -415,6 +415,7 @@ class CharacterGenerationPage:
         art_style = base_style if any(k in base_style.lower() for k in ["cartoon", "animation", "anime", "comic"]) else f"{base_style}; friendly 2D animation, cel-shaded, cartoon, non-realistic"
         background = structured_scene.get("background", {})
         characters = structured_scene.get("characters", [])
+        plot_elements = [elem for elem in structured_scene.get("important_plot_elements", []) if elem]
         char_lines = "; ".join(
             [
                 f"{c.get('name','')}: {c.get('description','')}"
@@ -423,12 +424,15 @@ class CharacterGenerationPage:
         )
         beats = structured_scene.get("beats", [])
         beat_text = "; ".join([b.get("description", "") for b in beats[:4]])
+        plot_text = "; ".join(plot_elements)
+        plot_line = f"Important plot elements to show clearly: {plot_text}. " if plot_text else ""
         return (
             f"One cinematic, high-resolution illustration in {art_style} style showing all main characters together. "
             f"Setting: {background.get('location', background.get('description', ''))}, "
             f"time: {background.get('time_of_day', 'Day')}. "
             f"Characters: {char_lines}. "
             f"Mood and action: {beat_text}. "
+            f"{plot_line}"
             f"Full scene in one frame, cohesive lighting, consistent style across characters and environment. "
             f"No text, no captions, no watermarks."
         )
@@ -447,6 +451,9 @@ class CharacterGenerationPage:
             "scene_title": "Draft Scene",
             "logline": "Fallback structure from heuristic parser.",
             "art_style": "realistic",
+            "important_plot_elements": [
+                "A single prop or visual cue critical to the scene (e.g., a mysterious package on the table)."
+            ],
             "beats": [
                 {"order": 1, "description": "Establish setting and mood."},
                 {"order": 2, "description": "Introduce main characters."},
