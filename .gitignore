@@ -44,3 +44,8 @@ htmlcov/
 # Docker volumes (optional)
 docker-data/
 
+# Output
+src/output/*.mp4
+src/output/*.mp3
+src/output/*/*
+src/output/*/*/*

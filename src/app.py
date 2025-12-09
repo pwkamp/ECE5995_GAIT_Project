@@ -43,7 +43,7 @@ class GAITApp:
             ScriptPage(self.state, self.config),
             CharacterGenerationPage(self.state, self.config),
             MusicGenerationPage(self.state, self.config),
-            VideoGenerationPage(self.state),
+            VideoGenerationPage(self.state, self.config),
             StructuredJSONPage(self.state, self.config),
         ]
 
@@ -98,7 +98,7 @@ class GAITApp:
 
 
 def main() -> None:
-    dev_mode = st.sidebar.toggle("Dev mode: preload sample script", value=True)
+    dev_mode = st.sidebar.toggle("Dev mode: preload sample script", value=False)
     secrets_api_key = st.secrets.get("OPENAI_API_KEY") if hasattr(st, "secrets") else None
     secrets_model = st.secrets.get("OPENAI_MODEL") if hasattr(st, "secrets") else None
     secrets_eleven = st.secrets.get("ELEVENLABS_API_KEY") if hasattr(st, "secrets") else None
@@ -129,4 +129,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

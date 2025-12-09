@@ -1,56 +1,59 @@
 {
-  "scene_title": "Playful Prank in the Factory",
-  "logline": "Edward, Harry, and George share a lighthearted moment of mischief and laughter amid the noisy factory setting.",
-  "art_style": "Realistic with warm tones and dynamic lighting",
+  "scene_title": "Factory Prank",
+  "logline": "Two mischievous factory workers play a harmless prank on their cautious colleague during a shift in an early 1900s factory.",
+  "art_style": "Black-and-white, grainy silent film",
   "background": {
-    "description": "Inside a bustling factory with machinery and tools visible, ambient noise implied by visual cues",
-    "time_of_day": "Daytime",
-    "location": "Industrial factory floor"
+    "description": "A gritty early 1900s factory floor with machinery, pipes, and hanging lamps casting stark shadows.",
+    "time_of_day": "Day",
+    "location": "Factory floor"
   },
+  "important_plot_elements": [
+    "grease-stained overalls",
+    "flat cap",
+    "lever on factory machinery",
+    "harmless puff of air",
+    "dangling string"
+  ],
   "characters": [
     {
-      "name": "Edward",
-      "description": "A young factory worker, wearing a cap and work clothes, expressive and playful",
-      "style_hint": "Casual early 20th-century worker attire",
-      "prompt": "young male factory worker in cap and worn clothes, playful expression"
+      "name": "EDWARD",
+      "description": "Mid-30s, tall, lean, mischievous ringleader in grease-stained overalls and flat cap",
+      "style_hint": "Silent film exaggerated expressions",
+      "prompt": "tall lean man in grease-stained overalls and flat cap, mischievous expression, black and white grainy silent film style"
     },
     {
-      "name": "Harry",
-      "description": "Another factory worker, jovial and teasing, mid-20s",
-      "style_hint": "Similar work attire, friendly demeanor",
-      "prompt": "male factory worker with teasing smile, casual work clothes"
+      "name": "HARRY",
+      "description": "Late 20s, stockier, jovial accomplice with suspenders and rolled sleeves",
+      "style_hint": "Silent film exaggerated expressions",
+      "prompt": "stocky man in suspenders and rolled sleeves, jovial grin, black and white grainy silent film style"
     },
     {
-      "name": "George",
-      "description": "Mischievous and grinning, ready to prank, wearing work clothes",
-      "style_hint": "Energetic and sly expression",
-      "prompt": "male factory worker with sly grin, holding rag dipped in oil"
+      "name": "GEORGE",
+      "description": "Early 30s, unsuspecting victim, neat cap and vest, cautious demeanor",
+      "style_hint": "Silent film exaggerated expressions",
+      "prompt": "man in neat cap and vest, cautious expression, black and white grainy silent film style"
     }
   ],
   "beats": [
     {
       "order": 1,
-      "description": "Edward and Harry chuckle as George rubs his neck, amused."
+      "description": "Edward and Harry exchange sly glances on the factory floor, preparing for the prank.",
+      "dialogue": [
+        "EDWARD: Ready? When George gets here, lift the lever.",
+        "HARRY: He'll never see it coming."
+      ],
+      "duration_seconds": 6,
+      "padded_duration_seconds": 8
     },
     {
       "order": 2,
-      "description": "Harry pretends innocence, teasing George about expecting a bucket of grease."
-    },
-    {
-      "order": 3,
-      "description": "George grins and says he'll bring the bucket next time."
-    },
-    {
-      "order": 4,
-      "description": "George sneaks behind Edward and flicks a rag dipped in oil onto Edward's cap."
-    },
-    {
-      "order": 5,
-      "description": "Edward freezes momentarily then laughs, accepting the prank."
-    },
-    {
-      "order": 6,
-      "description": "All three share a conspiratorial laugh as factory noise swells."
+      "description": "George walks over adjusting his cap. Edward nods; Harry pulls the lever. A puff of air startles George; a harmless string dangles.",
+      "dialogue": [
+        "GEORGE: Very funny.",
+        "EDWARD: Just a bit of fun to lighten the shift."
+      ],
+      "duration_seconds": 7,
+      "padded_duration_seconds": 8
     }
   ]
 }

@@ -36,6 +36,11 @@ class OpenAIChatService:
 
     def generate_structured_scene(self, script_text: str) -> Dict:
         """Generate structured JSON from freeform script text."""
+        structure_model = (
+            os.getenv("OPENAI_STRUCTURE_MODEL")
+            or os.getenv("OPENAI_MODEL")
+            or "gpt-4.1-mini"
+        )
         messages = [
             {
                 "role": "system",
@@ -43,14 +48,23 @@ class OpenAIChatService:
                     "Return only valid JSON describing the scene. Keys: "
                     "scene_title (string), logline (string), art_style (string), "
                     "background (object: description, time_of_day, location), "
+                    "important_plot_elements (array of 2-5 short concrete props or visual actions that must be seen on screen), "
                     "characters (array of objects: name, description, style_hint, prompt), "
-                    "beats (array of objects: order, description). Keep prompts concise."
+                    "beats (array of objects: order, description, dialogue, duration_seconds, padded_duration_seconds). "
+                    "Each beat.dialogue must be an array of 1-3 short spoken lines labelled with the "
+                    "character name (e.g., \"ALEX: Let's move.\"). Keep prompts concise."
+                    "Estimate duration_seconds per beat (dialogue+action) and also padded_duration_seconds with ~20-30% extra buffer. "
+                    "padded_duration_seconds must be snapped to one of [4, 8, 12] seconds (pick the closest with buffer applied)."
                 ),
             },
             {
                 "role": "user",
                 "content": (
                     "Structure this script into JSON for downstream image generation. "
+                    "Include an 'important_plot_elements' array of the key physical props, visual gags, or objects that must appear in shots. "
+                    "Ensure every beat has a dialogue array with 1-3 short lines of spoken dialogue and both duration_seconds "
+                    "and padded_duration_seconds fields (include reasonable buffer). "
+                    "Snap padded_duration_seconds to 4, 8, or 12 seconds (nearest, with buffer). "
                     "Script:\n" + script_text
                 ),
             },
@@ -58,7 +72,7 @@ class OpenAIChatService:
 
         try:
             response = self.client.chat.completions.create(
-                model=self.model,
+                model=structure_model,
                 messages=messages,
                 temperature=0.3,
                 response_format={"type": "json_object"},
